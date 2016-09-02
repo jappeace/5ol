@@ -1,0 +1,8 @@
+[package]
+name = "50l"
+version = "0.1.0"
+authors = ["jappie <superpwnzormegaman@gmail.com>"]
+license-file = "license.txt"
+
+[dependencies]
+conrod = "0.42.0"
