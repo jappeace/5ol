@@ -3,7 +3,8 @@
 extern crate find_folder;
 extern crate piston_window;
 
-use piston_window::{EventLoop, OpenGL, PistonWindow, UpdateEvent, WindowSettings};
+use piston_window::{EventLoop, OpenGL, PistonWindow, UpdateEvent, WindowSettings, Event};
+use piston_window::Event::*;
 
 const assetspath: &'static str = "assets";
 const font: &'static str = "fonts/NotoSans/NotoSans-Regular.ttf";
@@ -21,6 +22,7 @@ fn main() {
         WindowSettings::new("Canvas Demo", [WIDTH, HEIGHT])
             .opengl(opengl).exit_on_esc(true).vsync(true).build().unwrap();
     window.set_ups(60);
+    window.set_max_fps(60);
 
     // construct our `Ui`.
     let mut ui = conrod::UiBuilder::new().build();
@@ -52,22 +54,32 @@ fn main() {
         }
 
         event.update(|_| {
-            set_widgets(ui.set_widgets(), ids);
+            ;
         });
-
-        window.draw_2d(&event, |c, g| {
-            if let Some(primitives) = ui.draw_if_changed() {
-                fn texture_from_image<T>(img: &T) -> &T { img };
-                conrod::backend::piston_window::draw(c, g, primitives,
-                                                     &mut text_texture_cache,
-                                                     &image_map,
-                                                     texture_from_image);
-            }
-        });
+        match event.clone() {
+            Idle (_ ) => println!("idleing"),
+            Render(_ ) => println!("rendering"),
+            AfterRender(_ ) => println!("after render??"),
+            Update(_ ) => set_widgets(ui.set_widgets(), ids),
+            Input(I) => println!("inputing")
+        }
     }
 
 }
-
+use conrod::Ui;
+use conrod::image::Map;
+use conrod::backend::piston_window::GlyphCache;
+fn render(window:&mut PistonWindow, event:Event, ui:Ui, text_textue_cache:GlyphCache, image_map:Map){
+    window.draw_2d(&event, |c, g| {
+        if let Some(primitives) = ui.draw_if_changed() {
+            fn texture_from_image<T>(img: &T) -> &T { img };
+            conrod::backend::piston_window::draw(c, g, primitives,
+                                                 &mut text_texture_cache,
+                                                 &image_map,
+                                                 texture_from_image);
+        }
+    });
+}
 
 // Draw the Ui.
 fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids) {
