@@ -5,6 +5,9 @@ extern crate piston_window;
 
 use piston_window::{EventLoop, OpenGL, PistonWindow, UpdateEvent, WindowSettings};
 
+const assetspath: &'static str = "assets";
+const font: &'static str = "fonts/NotoSans/NotoSans-Regular.ttf";
+
 
 fn main() {
     const WIDTH: u32 = 800;
@@ -23,9 +26,12 @@ fn main() {
     let mut ui = conrod::UiBuilder::new().build();
 
     // Add a `Font` to the `Ui`'s `font::Map` from file.
-    let assets = find_folder::Search::KidsThenParents(3, 5).for_folder("assets").unwrap();
-    let font_path = assets.join("fonts/NotoSans/NotoSans-Regular.ttf");
-    ui.fonts.insert_from_file(font_path).unwrap();
+    let assets = find_folder::Search::KidsThenParents(3, 5).
+        for_folder(assetspath).expect("Couldn't find assets folder in root");
+    let font_path = assets.join(font);
+    ui.fonts.insert_from_file(font_path).expect(
+        "Couldn't find the font" 
+    );
 
     // Create a texture to use for efficiently caching text on the GPU.
     let mut text_texture_cache =
