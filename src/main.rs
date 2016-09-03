@@ -2,42 +2,34 @@
 #[macro_use] extern crate conrod;
 extern crate find_folder;
 extern crate piston_window;
-use std::result::Result;
+
 use piston_window::{EventLoop, OpenGL, PistonWindow, UpdateEvent, WindowSettings};
-macro_rules! tries {
-    ($e:expr) => (match $e { Ok(e) => e, Err(e) => return Err( .to_string())})
-}
+
 
 fn main() {
-    
-    match openWindow() {
-        Ok(m) => println!("window opening success!! {:?}", m),
-        Err(e) => println!("oh ooh something went wrong: \n{:?}", e)
-    }
-}
-fn openWindow() -> Result<(), &'static str> {
     const WIDTH: u32 = 800;
     const HEIGHT: u32 = 600;
 
     // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V3_2;
-
+    
     // Construct the window.
     let mut window: PistonWindow =
-        tries!(WindowSettings::new("Canvas Demo", [WIDTH, HEIGHT])
-        .opengl(opengl).exit_on_esc(true).vsync(true).build());
+        WindowSettings::new("Canvas Demo", [WIDTH, HEIGHT])
+            .opengl(opengl).exit_on_esc(true).vsync(true).build().unwrap();
     window.set_ups(60);
 
     // construct our `Ui`.
     let mut ui = conrod::UiBuilder::new().build();
 
     // Add a `Font` to the `Ui`'s `font::Map` from file.
-    let assets = tries!(find_folder::Search::KidsThenParents(3, 5).for_folder("assets"));
+    let assets = find_folder::Search::KidsThenParents(3, 5).for_folder("assets").unwrap();
     let font_path = assets.join("fonts/NotoSans/NotoSans-Regular.ttf");
-    tries!(ui.fonts.insert_from_file(font_path));
+    ui.fonts.insert_from_file(font_path).unwrap();
 
     // Create a texture to use for efficiently caching text on the GPU.
-    let mut text_texture_cache = conrod::backend::piston_window::GlyphCache::new(&mut window, WIDTH, HEIGHT);
+    let mut text_texture_cache =
+        conrod::backend::piston_window::GlyphCache::new(&mut window, WIDTH, HEIGHT);
 
     // The image map describing each of our widget->image mappings (in our case, none).
     let image_map = conrod::image::Map::new();
@@ -68,7 +60,6 @@ fn openWindow() -> Result<(), &'static str> {
         });
     }
 
-    Ok(())
 }
 
 
