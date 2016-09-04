@@ -10,25 +10,19 @@ pub trait State {
 struct UnitState;
 impl State for UnitState{}
 
-pub trait StateMachine{
-    fn change_state(&mut self, to:Box<State>);
-}
-
-pub struct Machine{
+pub struct StateMachine{
     state:Box<State>
 }
-impl StateMachine for Machine{
-    fn change_state(&mut self, to:Box<State>) {
+impl StateMachine{
+    pub fn change_state(&mut self, to:Box<State>) {
         self.state.exit();
         self.state = to;
         if let Some(statebox) = self.state.enter(){
             self.change_state(statebox);
         }
     }
-}
-impl Machine{
-    pub fn new() -> Machine{
-        let mut result = Machine{state:Box::new(UnitState{})};
+    pub fn new() -> StateMachine{
+        let mut result = StateMachine{state:Box::new(UnitState{})};
         if let Some(statebox) = result.state.enter(){
             result.change_state(statebox);
         }

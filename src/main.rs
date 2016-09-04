@@ -27,7 +27,7 @@ mod state_machine;
 mod begin_state;
 mod conquest_state;
 
-use state_machine::{Machine, StateMachine};
+use state_machine::StateMachine;
 use begin_state::BeginState;
 const assetspath: &'static str = "assets";
 const font: &'static str = "fonts/NotoSans/NotoSans-Regular.ttf";
@@ -69,7 +69,7 @@ fn main() {
 
     // Poll events from the window.
 
-    let mut stateMachine = Machine::new();
+    let mut stateMachine = StateMachine::new();
     stateMachine.change_state(Box::new(BeginState::new(ui.widget_id_generator())));
 
     let mut handledInput = false;
