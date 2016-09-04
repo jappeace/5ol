@@ -19,7 +19,7 @@ use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget
 use conrod::widget::Line;
 use conrod;
 
-use state_machine::State;
+use state_machine::{State, StateChange};
 use conquest_state::ConquestState;
 
 pub struct BeginState{
@@ -31,7 +31,7 @@ impl BeginState{
     }
 }
 impl State for BeginState {
-    fn render(&mut self, ui:&mut conrod::UiCell) -> Option<Box<State>> {
+    fn update(&mut self, ui:&mut conrod::UiCell) -> StateChange{
 
         const PAD: Scalar = 20.0;
         const INTRO_TEXT: &'static str = "After a long power struggle over now several generations, 

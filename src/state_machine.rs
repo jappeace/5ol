@@ -16,11 +16,14 @@
 
 
 use conrod;
+use piston_window::Input;
 
+pub type StateChange = Option<Box<State>>;
 pub trait State {
-    fn enter(&mut self )-> Option<Box<State>>{ None }
-    fn render(&mut self, ui:&mut conrod::UiCell)-> Option<Box<State>>{None}
+    fn enter(&mut self )-> StateChange{ None }
+    fn update(&mut self, ui:&mut conrod::UiCell)-> StateChange{None}
     fn exit(&mut self,){}
+    fn input(&mut self, input:Input) -> StateChange{None}
 }
 
 // do nothing state, for init
@@ -45,8 +48,13 @@ impl StateMachine{
         }
         return result
     }
-    pub fn render(&mut self, ui:&mut conrod::UiCell){
-        if let Some(statebox) = self.state.render(ui){
+    pub fn update(&mut self, ui:&mut conrod::UiCell){
+        if let Some(statebox) = self.state.update(ui){
+            self.change_state(statebox);
+        }
+    }
+    pub fn input(&mut self, input:Input) {
+        if let Some(statebox) = self.state.input(input){
             self.change_state(statebox);
         }
     }

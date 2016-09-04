@@ -19,6 +19,7 @@
 #[macro_use] extern crate conrod;
 extern crate find_folder;
 extern crate piston_window;
+extern crate time;
 
 use piston_window::{EventLoop, OpenGL, PistonWindow, RenderEvent, WindowSettings, Event};
 use piston_window::Event::*;
@@ -89,8 +90,14 @@ fn main() {
                     }
                 }).unwrap(),
             AfterRender(_ ) => continue,
-            Update(_ ) => if !handledInput {stateMachine.render(&mut ui.set_widgets()); handledInput = true },
-            Input(I) => handledInput = false,
+            Update(_ ) => if !handledInput {
+                stateMachine.update(&mut ui.set_widgets());
+                handledInput = true
+            },
+            Input(i) => {
+                stateMachine.input(i);
+                handledInput = false
+            },
         };
     }
 
