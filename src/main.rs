@@ -3,7 +3,7 @@
 extern crate find_folder;
 extern crate piston_window;
 
-use piston_window::{EventLoop, OpenGL, PistonWindow, UpdateEvent, WindowSettings, Event};
+use piston_window::{EventLoop, OpenGL, PistonWindow, RenderEvent, WindowSettings, Event};
 use piston_window::Event::*;
 
 const assetspath: &'static str = "assets";
@@ -44,9 +44,9 @@ fn main() {
     // The image map describing each of our widget->image mappings (in our case, none).
     let image_map = conrod::image::Map::new();
 
-    // Instantiate the generated list of widget identifiers.
-    let ids = &mut Ids::new(ui.widget_id_generator());
     // Poll events from the window.
+
+    let mut stateMachine = Machine::new(Ids::new(ui.widget_id_generator()));
 
     let mut handledInput = false;
     while let Some(event) = window.next() {
@@ -65,35 +65,94 @@ fn main() {
                     }
                 }).unwrap(),
             AfterRender(_ ) => continue,
-            Update(_ ) => if !handledInput {set_widgets(ui.set_widgets(), ids); handledInput = true },
+            Update(_ ) => if !handledInput {stateMachine.render(&mut ui.set_widgets()); handledInput = true },
             Input(I) => handledInput = false,
         };
     }
 
 }
 
-// Draw the Ui.
-fn set_widgets(ref mut ui: conrod::UiCell, ids: &mut Ids) {
-    use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget, Scalar};
-    use conrod::widget::Line;
+struct BeginState{
+    ids:Ids
+}
+struct ConquestState{
+    ids:Ids
+}
+trait State {
+    fn enter(&mut self )-> Option<Box<State>>{ None }
+    fn render(&mut self, ui:&mut conrod::UiCell)-> Option<Box<State>>{None}
+    fn exit(&mut self,){}
+}
+impl State for BeginState {
+    fn render(&mut self, ui:&mut conrod::UiCell) -> Option<Box<State>> {
+        use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget, Scalar};
+        use conrod::widget::Line;
 
-
-    const PAD: Scalar = 20.0;
-    const DEMO_TEXT: &'static str = "After a long power struggle over now several generations, 
+        const PAD: Scalar = 20.0;
+        const INTRO_TEXT: &'static str = "After a long power struggle over now several generations, 
     you Kim Ill Sung III has finally crushed all opposition.
     With no-one else left daring to oppose you mankind puts it faith in you,
     our dearest leader, and you look to the stars...
 ";
-    // Construct our main `Canvas` tree.
-    widget::Canvas::new().color(color::BLACK).set(ids.root, ui);
-    widget::Text::new(DEMO_TEXT)
-        .color(color::LIGHT_RED)
-        .padded_w_of(ids.root, PAD)
-        .mid_top_with_margin_on(ids.root, PAD)
-        .align_text_left()
-        .line_spacing(10.0)
-        .set(ids.intro_text, ui);
+        // Construct our main `Canvas` tree.
+        widget::Canvas::new().color(color::BLACK).set(self.ids.canvas_root, ui);
+        widget::Text::new(INTRO_TEXT)
+            .color(color::LIGHT_RED)
+            .middle_of(self.ids.canvas_root)
+            .align_text_left()
+            .line_spacing(10.0)
+            .set(self.ids.text_intro, ui);
+        for click in widget::Button::new()
+            .w_h(200.0, 80.0)
+            .label("Begin your conquest")
+            .color(color::DARK_CHARCOAL)
+            .label_color(color::GRAY)
+            .set(self.ids.button_begin, ui){
+                return Some(Box::new(ConquestState{ids:Ids::new(ui.widget_id_generator())}))
+            }
+        None
+    }
 }
+impl State for ConquestState{
+    
+    fn render(&mut self, ui:&mut conrod::UiCell) ->  Option<Box<State>>{
+        use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget, Scalar};
+        use conrod::widget::Line;
+        widget::Canvas::new().color(color::BLUE).set(self.ids.canvas_root, ui);
+        None
+    }
+}
+
+struct Machine{
+    state:Box<State>
+}
+trait StateMachine{
+    fn change_state(&mut self, to:Box<State>);
+}
+impl StateMachine for Machine{
+    fn change_state(&mut self, to:Box<State>) {
+        self.state.exit();
+        self.state = to;
+        if let Some(statebox) = self.state.enter(){
+            self.change_state(statebox);
+        }
+    }
+}
+impl Machine{
+    fn new(ids:Ids) -> Machine{
+        let mut result = Machine{state:Box::new(BeginState{ids:ids})};
+        if let Some(statebox) = result.state.enter(){
+            result.change_state(statebox);
+        }
+        return result
+    }
+    fn render(&mut self, ui:&mut conrod::UiCell){
+        if let Some(statebox) = self.state.render(ui){
+            self.change_state(statebox);
+        }
+    }
+}
+
 
 
 // Button matrix dimensions.
@@ -103,7 +162,8 @@ const COLS: usize = 24;
 // Generate a unique `WidgetId` for each widget.
 widget_ids! {
     Ids {
-        root,
-        intro_text
+        canvas_root,
+        text_intro,
+        button_begin
     }
 }
