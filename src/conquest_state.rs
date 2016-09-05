@@ -19,68 +19,19 @@
 use state_machine::{State, StateChange};
 use piston_window::Input;
 use conrod;
-use conrod::Dimensions;
 use time::Duration;
 use piston_window::keyboard::Key;
 
 use geometry::*;
 use stellar_bodies::*;
+use camera::Camera;
 
 pub struct ConquestState{
     ids:Ids,
     camera:Camera,
     systems:Vec<System>
 }
-struct Camera{
-    position:Position, // position in world coordinates (AU)
-    width:Au, // in astromical units
-    height:Au,
-}
-impl Camera{
-    fn worldToScreen(&self, screenSize:&Dimensions, position:Position) -> Position{
-        println!("screensize {:?}", screenSize);
-        let factor = Position::new(screenSize[0], screenSize[1]) / Position::new(self.width, self.height);
-        (position + self.position) * factor
-    }
-    fn update(&self, ui:&mut conrod::UiCell, screenSize:&Dimensions, systems:&Vec<System>){
-        use conrod::widget::Circle;
-        use conrod::{Positionable, Widget};
-        use conrod::Colorable;
-        let camrect = Rectangle{
-            one: Position{
-                x:self.position.x-self.width/2.0,
-                y:self.position.y-self.height/2.0,
-            },
-            two: Position{
-                x:self.position.x+self.width/2.0,
-                y:self.position.y+self.height/2.0,
-            }
-        };
-        // cull the ones outside view, (and ignoring their sub bodies)
-        let visible = systems.iter().filter(|x| -> bool {
-            let disk = Disk{
-                position:x.position,
-                radius:x.radius};
-            camrect.contains(&x.position) ||
-            disk.contains([camrect.tl(), camrect.tr()]) ||
-            disk.contains([camrect.tr(), camrect.br()]) ||
-            disk.contains([camrect.br(), camrect.bl()]) ||
-            disk.contains([camrect.bl(), camrect.tl()])
-        }
-        ).flat_map(|x| &x.bodies);
-        for body in visible{
-            let nextId = {
-                let mut generator = ui.widget_id_generator();
-                generator.next()
-            };
-            let position = self.worldToScreen(screenSize, body.calcPosition(Duration::zero()));
-            println!("{}", position);
-            Circle::fill(5.0).x(position.x).y(position.y).color(conrod::color::WHITE).set(nextId, ui);
-        }
-    }
-}
 impl State for ConquestState{
-    
     fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
         println!("update");
         use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget, Scalar};
@@ -116,7 +67,7 @@ impl ConquestState{
     pub fn new(mut generator: conrod::widget::id::Generator)->ConquestState{
         ConquestState{
             ids:Ids::new(generator),
-            camera:Camera{position:center, width:2.0, height:2.0},
+            camera:Camera::new(center,2.0,2.0),
             systems:vec![
                 System::new(
                     center,

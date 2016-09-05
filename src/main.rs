@@ -31,6 +31,7 @@ mod begin_state;
 mod conquest_state;
 mod geometry;
 mod stellar_bodies;
+mod camera;
 
 use state_machine::StateMachine;
 use begin_state::BeginState;
