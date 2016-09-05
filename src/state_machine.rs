@@ -14,6 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see <http://www.gnu.org/licenses/>.
 
+// a simple construct implementing the statemachine pattern.
+// where one api can have wildly different implementation.
+// this is used for major GUI changes, note that thus a state isn't strictly
+// static. This pattern doesn't prevent that (and isn't intended to)
 
 use conrod;
 use piston_window::Input;

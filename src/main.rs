@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see <http://www.gnu.org/licenses/>.
 
+// main file where we load the program and do the window loop
+// (I'm not a bliever of a sparse main file)
 
 
 #[macro_use] extern crate conrod;
@@ -27,6 +29,8 @@ use piston_window::Event::*;
 mod state_machine;
 mod begin_state;
 mod conquest_state;
+mod geometry;
+mod stellar_bodies;
 
 use state_machine::StateMachine;
 use begin_state::BeginState;

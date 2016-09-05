@@ -14,168 +14,38 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see <http://www.gnu.org/licenses/>.
 
+// this file describes the main game where you stare at a map of the galaxy
+
 use state_machine::{State, StateChange};
 use piston_window::Input;
 use conrod;
+use conrod::Dimensions;
 use time::Duration;
+use piston_window::keyboard::Key;
+
+use geometry::*;
+use stellar_bodies::*;
+
 pub struct ConquestState{
     ids:Ids,
     camera:Camera,
     systems:Vec<System>
 }
-#[derive(Copy,Clone)]
-struct Position{
-    x:f64,
-    y:f64
-}
-use std::ops::{Add, Sub, Neg};
-impl Position{
-    fn dot(&self, with:Position) -> f64{
-        self.length() * with.length() * self.angleRad(with).cos()
-    }
-    fn lengthSq(&self)->f64{
-        self.x*self.x+self.y*self.y
-    }
-    fn length(&self)->f64{
-        self.lengthSq().sqrt()
-    }
-    fn angleRad(&self, other:Position) -> f64{
-        (self.y - other.y).atan2(self.x - other.x)
-    }
-}
-impl Add for Position{
-    type Output = Position;
-    fn add(self, _rhs: Position) -> Position{   
-        Position{x:_rhs.x+self.x, y:_rhs.y+self.y}
-    }
-}
-impl Sub for Position{
-    type Output = Position;
-    fn sub(self, _rhs: Position) -> Position{   
-        Position{x:_rhs.x-self.x, y:_rhs.y-self.y}
-    }
-}
-impl Neg for Position{
-    type Output = Position;
-    fn neg(self) -> Position{   
-        Position{x:-self.x, y:-self.y}
-    }
-}
-const center:Position = Position{x:0.0,y:0.0};
-type Line = [Position;2];
-struct Disk{
-    position:Position,
-    radius:f64
-}
-impl Disk{
-    fn contains(&self, line:Line) -> bool{
-        let d = line[0] - line[1];
-        let f = line[1] - self.position;
-        let r = self.radius;
-        let a = d.dot( d ) ;
-        let b = 2.0*f.dot( d ) ;
-        let c = f.dot( f ) - r*r ;
-
-        let discriminant = b*b-4.0*a*c;
-        discriminant >= 0.0
-    }
-}
-struct Rectangle {
-    one:Position,
-    two:Position
-}
-impl Rectangle{
-    fn contains(&self, position:&Position) -> bool{
-        let tl = self.tl();
-        let br = self.br();
-        tl.x < position.x && tl.y < position.y && br.x > position.x && br.y > position.y
-    }
-    fn tl(&self) -> Position{
-        Position{
-            x: if self.one.x < self.two.x {self.one.x} else {self.two.x},
-            y: if self.one.y > self.two.y {self.one.y} else {self.two.y}
-        }
-    }
-    fn tr(&self) -> Position{
-        Position{
-            x: if self.one.x > self.two.x {self.one.x} else {self.two.x},
-            y: if self.one.y > self.two.y {self.one.y} else {self.two.y}
-        }
-    }
-    fn br(&self) -> Position{
-        Position{
-            x: if self.one.x > self.two.x {self.one.x} else {self.two.x},
-            y: if self.one.y < self.two.y {self.one.y} else {self.two.y}
-        }
-    }
-    fn bl(&self) -> Position{
-        Position{
-            x: if self.one.x < self.two.x {self.one.x} else {self.two.x},
-            y: if self.one.y < self.two.y {self.one.y} else {self.two.y}
-        }
-    }
-}
-type Au = f64;
-trait StellarBody{
-    fn calcPosition(&self, sinceStartOfSimulation:Duration) -> Position{
-        let orbitTime:i64 = self.getOrbitTime().num_seconds();
-        if orbitTime == 0 {
-            // prevents division by 0
-            return center;
-        }
-        let cycleProgress:i64 = sinceStartOfSimulation.num_seconds() % orbitTime;
-        let progressFraction:f64 = (cycleProgress as f64)/(orbitTime as f64);
-        Position{
-            x: progressFraction.sin() * self.getOrbitDistance(),
-            y: progressFraction.cos() * self.getOrbitDistance()
-        }
-    }
-    fn getOrbitTime(&self) -> Duration;
-    fn getOrbitDistance(&self) -> Au;
-}
-// a single star is the center of a system
-struct SingleStar;
-// something that has an orbit other than 0
-struct Orbital{
-    orbitTime:Duration,
-    distance:Au
-}
-impl StellarBody for SingleStar{
-    fn getOrbitTime(&self) -> Duration{Duration::zero()}
-    fn getOrbitDistance(&self) -> Au{0.0}
-}
-impl StellarBody for Orbital{
-    fn getOrbitTime(&self) -> Duration{self.orbitTime}
-    fn getOrbitDistance(&self) -> Au {self.distance}
-}
-struct System{
-    position:Position,
-    radius:Au, // allows quick filtering
-    bodies:Vec<Box<StellarBody>>,
-}
-impl System{
-    fn new(position:Position, bodies:Vec<Box<StellarBody>>) -> System{
-        let radius = bodies.iter().fold(0.0,|prev,body|->f64{
-            let newDist = body.getOrbitDistance();
-            if newDist > prev{
-                newDist
-            }else{
-                prev
-            }
-        });
-        System{position:position,bodies:bodies,radius:radius}
-    }
-}
 struct Camera{
-    position:Position,
+    position:Position, // position in world coordinates (AU)
     width:Au, // in astromical units
     height:Au,
 }
-use piston_window::keyboard::Key;
 impl Camera{
-    fn update(&self, ui:&mut conrod::UiCell, systems:&Vec<System>){
-        use conrod::widget::Oval;
+    fn worldToScreen(&self, screenSize:&Dimensions, position:Position) -> Position{
+        println!("screensize {:?}", screenSize);
+        let factor = Position::new(screenSize[0], screenSize[1]) / Position::new(self.width, self.height);
+        (position + self.position) * factor
+    }
+    fn update(&self, ui:&mut conrod::UiCell, screenSize:&Dimensions, systems:&Vec<System>){
+        use conrod::widget::Circle;
         use conrod::{Positionable, Widget};
+        use conrod::Colorable;
         let camrect = Rectangle{
             one: Position{
                 x:self.position.x-self.width/2.0,
@@ -199,16 +69,49 @@ impl Camera{
         }
         ).flat_map(|x| &x.bodies);
         for body in visible{
-            let position = body.calcPosition(Duration::zero());
-            
             let nextId = {
                 let mut generator = ui.widget_id_generator();
                 generator.next()
             };
-            Oval::fill([position.x+self.position.x, position.y+self.position.y]).down(80.0).align_middle_x().set(nextId, ui);
+            let position = self.worldToScreen(screenSize, body.calcPosition(Duration::zero()));
+            println!("{}", position);
+            Circle::fill(5.0).x(position.x).y(position.y).color(conrod::color::WHITE).set(nextId, ui);
         }
     }
 }
+impl State for ConquestState{
+    
+    fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
+        println!("update");
+        use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget, Scalar};
+        use conrod::widget::Line;
+        let canvas = widget::Canvas::new();
+        canvas
+            .color(color::BLUE)
+            .crop_kids()
+            .set(self.ids.canvas_root, ui) ;
+        let dimens = ui.window_dim();
+        self.camera.update(ui, &dimens, &self.systems);
+        None
+    }
+    fn input(&mut self, input:Input) -> StateChange{
+        use piston_window::Input::*;
+        use piston_window::Button::*;
+        use piston_window::keyboard::Key::*;
+        match input {
+            Press(Keyboard(key)) => match key {
+                W => self.camera.position.y -= 0.1,
+                S => self.camera.position.y += 0.1,
+                D => self.camera.position.x -= 0.1,
+                A => self.camera.position.x += 0.1,
+                _ => {}
+            },
+            _ => {}
+        }
+        None
+    }
+}
+
 impl ConquestState{
     pub fn new(mut generator: conrod::widget::id::Generator)->ConquestState{
         ConquestState{
@@ -218,41 +121,15 @@ impl ConquestState{
                 System::new(
                     center,
                     vec![
-                        Box::new(SingleStar),
-                        Box::new(Orbital{
+                        create_single_star(),
+                        StellarBody{
                             orbitTime:Duration::days(365),
                             distance:1.0
-                        })
+                        }
                     ]
                 )
             ]
         }
-    }
-}
-impl State for ConquestState{
-    
-    fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
-        use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget, Scalar};
-        use conrod::widget::Line;
-        widget::Canvas::new().color(color::BLUE).set(self.ids.canvas_root, ui);
-        self.camera.update(ui, &self.systems);
-        None
-    }
-    fn input(&mut self, input:Input) -> StateChange{
-        use piston_window::Input::*;
-        use piston_window::Button::*;
-        use piston_window::keyboard::Key::*;
-        match input {
-            Press(Keyboard(key)) => match key {
-                W => self.camera.position.y += 0.1,
-                S => self.camera.position.y -= 0.1,
-                D => self.camera.position.x += 0.1,
-                A => self.camera.position.x -= 0.1,
-                _ => {}
-            },
-            _ => {}
-        }
-        None
     }
 }
 
