@@ -121,11 +121,27 @@ impl ConquestState{
                 System::new(
                     center,
                     vec![
-                        create_single_star(),
+                        create_single_star("sun"),
                         StellarBody{
+                            name:"mercury",
+                            orbitTime:Duration::days(88),
+                            distance:0.387098 
+                        },
+                        StellarBody{
+                            name:"venus",
+                            orbitTime:Duration::days(225),
+                            distance:0.723332
+                        },
+                        StellarBody{
+                            name:"earth",
                             orbitTime:Duration::days(365),
                             distance:1.0
-                        }
+                        },
+                        StellarBody{
+                            name:"mars",
+                            orbitTime:Duration::days(780),
+                            distance:1.523679
+                        },
                     ]
                 )
             ]

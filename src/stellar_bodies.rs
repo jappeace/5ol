@@ -5,8 +5,9 @@ use time::Duration;
 use geometry::*;
 
 pub struct StellarBody{
+    pub name:&'static str,
     pub orbitTime:Duration,
-    pub distance:Au
+    pub distance:Au,
 }
 impl StellarBody{
     pub fn calcPosition(&self, sinceStartOfSimulation:Duration) -> Position{
@@ -44,9 +45,10 @@ impl System{
     }
 }
 
-pub fn create_single_star()->StellarBody{
+pub fn create_single_star(name:&'static str)->StellarBody{
     StellarBody{
+        name:name,
         orbitTime: Duration::zero(),
-        distance:0.0
+        distance:0.0,
     }
 }
