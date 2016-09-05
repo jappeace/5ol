@@ -23,6 +23,7 @@ pub struct ConquestState{
     camera:Camera,
     systems:Vec<System>
 }
+#[derive(Copy,Clone)]
 struct Position{
     x:f64,
     y:f64
@@ -85,15 +86,33 @@ struct Rectangle {
 }
 impl Rectangle{
     fn contains(&self, position:&Position) -> bool{
-        let tl = Position{
+        let tl = self.tl();
+        let br = self.br();
+        tl.x < position.x && tl.y < position.y && br.x > position.x && br.y > position.y
+    }
+    fn tl(&self) -> Position{
+        Position{
             x: if self.one.x < self.two.x {self.one.x} else {self.two.x},
             y: if self.one.y > self.two.y {self.one.y} else {self.two.y}
-        };
-        let br = Position{
+        }
+    }
+    fn tr(&self) -> Position{
+        Position{
+            x: if self.one.x > self.two.x {self.one.x} else {self.two.x},
+            y: if self.one.y > self.two.y {self.one.y} else {self.two.y}
+        }
+    }
+    fn br(&self) -> Position{
+        Position{
             x: if self.one.x > self.two.x {self.one.x} else {self.two.x},
             y: if self.one.y < self.two.y {self.one.y} else {self.two.y}
-        };
-        tl.x < position.x && tl.y < position.y && br.x > position.x && br.y > position.y
+        }
+    }
+    fn bl(&self) -> Position{
+        Position{
+            x: if self.one.x < self.two.x {self.one.x} else {self.two.x},
+            y: if self.one.y < self.two.y {self.one.y} else {self.two.y}
+        }
     }
 }
 type Au = f64;
@@ -134,6 +153,19 @@ struct System{
     radius:Au, // allows quick filtering
     bodies:Vec<Box<StellarBody>>,
 }
+impl System{
+    fn new(position:Position, bodies:Vec<Box<StellarBody>>) -> System{
+        let radius = bodies.iter().fold(0.0,|prev,body|->f64{
+            let newDist = body.getOrbitDistance();
+            if newDist > prev{
+                newDist
+            }else{
+                prev
+            }
+        });
+        System{position:position,bodies:bodies,radius:radius}
+    }
+}
 struct Camera{
     position:Position,
     width:Au, // in astromical units
@@ -142,8 +174,39 @@ struct Camera{
 use piston_window::keyboard::Key;
 impl Camera{
     fn update(&self, ui:&mut conrod::UiCell, systems:&Vec<System>){
-
-        visible = systems.iter().filter(|x| x.);
+        use conrod::widget::Oval;
+        use conrod::{Positionable, Widget};
+        let camrect = Rectangle{
+            one: Position{
+                x:self.position.x-self.width/2.0,
+                y:self.position.y-self.height/2.0,
+            },
+            two: Position{
+                x:self.position.x+self.width/2.0,
+                y:self.position.y+self.height/2.0,
+            }
+        };
+        // cull the ones outside view, (and ignoring their sub bodies)
+        let visible = systems.iter().filter(|x| -> bool {
+            let disk = Disk{
+                position:x.position,
+                radius:x.radius};
+            camrect.contains(&x.position) ||
+            disk.contains([camrect.tl(), camrect.tr()]) ||
+            disk.contains([camrect.tr(), camrect.br()]) ||
+            disk.contains([camrect.br(), camrect.bl()]) ||
+            disk.contains([camrect.bl(), camrect.tl()])
+        }
+        ).flat_map(|x| &x.bodies);
+        for body in visible{
+            let position = body.calcPosition(Duration::zero());
+            
+            let nextId = {
+                let mut generator = ui.widget_id_generator();
+                generator.next()
+            };
+            Oval::fill([position.x+self.position.x, position.y+self.position.y]).down(80.0).align_middle_x().set(nextId, ui);
+        }
     }
 }
 impl ConquestState{
@@ -152,16 +215,16 @@ impl ConquestState{
             ids:Ids::new(generator),
             camera:Camera{position:center, width:2.0, height:2.0},
             systems:vec![
-                System{
-                    position:center,
-                    bodies:vec![
+                System::new(
+                    center,
+                    vec![
                         Box::new(SingleStar),
                         Box::new(Orbital{
                             orbitTime:Duration::days(365),
                             distance:1.0
                         })
                     ]
-                }
+                )
             ]
         }
     }
@@ -172,7 +235,7 @@ impl State for ConquestState{
         use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget, Scalar};
         use conrod::widget::Line;
         widget::Canvas::new().color(color::BLUE).set(self.ids.canvas_root, ui);
-        self.camera.update(ui, self.systems);
+        self.camera.update(ui, &self.systems);
         None
     }
     fn input(&mut self, input:Input) -> StateChange{
