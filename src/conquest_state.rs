@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see <http://www.gnu.org/licenses/>.
 
+
 // this file describes the main game where you stare at a map of the galaxy
 
 use state_machine::{State, StateChange, StateEvent};
