@@ -10,7 +10,7 @@ pub struct StellarBody{
     pub distance:Au,
 }
 impl StellarBody{
-    pub fn calcPosition(&self, sinceStartOfSimulation:Duration) -> Position{
+    pub fn calcPosition(&self, sinceStartOfSimulation:&Duration) -> Position{
         let orbitTime:i64 = self.orbitTime.num_seconds();
         if orbitTime == 0 {
             // prevents division by 0

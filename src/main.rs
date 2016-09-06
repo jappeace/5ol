@@ -73,13 +73,18 @@ fn main() {
     // The image map describing each of our widget->image mappings (in our case, none).
     let image_map = conrod::image::Map::new();
 
-    // Poll events from the window.
+    let mut state_machine = StateMachine::new();
+    state_machine.change_state(Box::new(BeginState::new(ui.widget_id_generator())));
 
-    let mut stateMachine = StateMachine::new();
-    stateMachine.change_state(Box::new(BeginState::new(ui.widget_id_generator())));
-
-    let mut handledInput = false;
+    let mut should_update = true;
     while let Some(event) = window.next() {
+        {
+            use state_machine::StateEvent::*;
+            match state_machine.poll_events(){
+                Idle => {}
+                WantsUpdate => should_update = true,
+            }
+        }
         if let Some(e) = conrod::backend::piston_window::convert_event(event.clone(), &window) {
             ui.handle_event(e);
         }
@@ -95,13 +100,13 @@ fn main() {
                     }
                 }).unwrap(),
             AfterRender(_ ) => continue,
-            Update(_ ) => if !handledInput {
-                stateMachine.update(&mut ui.set_widgets());
-                handledInput = true
+            Update(_ ) => if should_update {
+                state_machine.update(&mut ui.set_widgets());
+                should_update = false
             },
             Input(i) => {
-                stateMachine.input(i);
-                handledInput = false
+                state_machine.input(i);
+                should_update = true
             },
         };
     }

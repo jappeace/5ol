@@ -16,7 +16,7 @@
 
 // this file describes the main game where you stare at a map of the galaxy
 
-use state_machine::{State, StateChange};
+use state_machine::{State, StateChange, StateEvent};
 use piston_window::Input;
 use conrod;
 use time::Duration;
@@ -25,24 +25,49 @@ use piston_window::keyboard::Key;
 use geometry::*;
 use stellar_bodies::*;
 use camera::Camera;
-
+use std::thread;
+use std::sync::{Arc, RwLock};
+use std::sync::mpsc::{channel, Receiver};
 pub struct ConquestState{
     ids:Ids,
     camera:Camera,
-    systems:Vec<System>
+    systems:Vec<System>,
+    event:Arc<RwLock<StateEvent>>,
+    gameTime:Arc<RwLock<Duration>>,
 }
 impl State for ConquestState{
+    fn enter(&mut self) -> StateChange{
+        let eventref = self.event.clone();
+        let gameTimeRef = self.gameTime.clone();
+        thread::spawn(move|| {
+            while true{
+                // at this point we gave up on channels and let locks into our
+                // hearts, it actually made things simpler, believe it or not.
+                *gameTimeRef.write().expect("poisned") = (
+                    *gameTimeRef.read().expect("poison time")
+                )+ Duration::weeks(1);
+                *eventref.write().expect(
+                    "posining on set event") = StateEvent::WantsUpdate;
+                use std::time;
+                thread::sleep(time::Duration::from_millis(100));
+            }
+        });
+        None
+    }
+    fn poll_event(&self) -> StateEvent{
+        *self.event.read().expect("poisining on read event")
+    }
     fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
         println!("update");
-        use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget, Scalar};
-        use conrod::widget::Line;
+        use conrod::{color, widget, Colorable, Widget};
         let canvas = widget::Canvas::new();
         canvas
             .color(color::BLUE)
             .crop_kids()
             .set(self.ids.canvas_root, ui) ;
         let dimens = ui.window_dim();
-        self.camera.update(ui, &dimens, &self.systems);
+        let time = *self.gameTime.read().expect("there is no time");
+        self.camera.update(ui, &dimens, &self.systems, &time);
         None
     }
     fn input(&mut self, input:Input) -> StateChange{
@@ -95,7 +120,9 @@ impl ConquestState{
                         },
                     ]
                 )
-            ]
+            ],
+            event:Arc::new(RwLock::new(StateEvent::Idle)),
+            gameTime:Arc::new(RwLock::new(Duration::zero())),
         }
     }
 }

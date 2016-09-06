@@ -22,7 +22,7 @@ impl Camera{
     pub fn new(position:Position, width:Au, height:Au)->Camera{
         Camera{position:position, width:2.0, height:2.0}
     }
-    pub fn update(&self, ui:&mut conrod::UiCell, screenSize:&Dimensions, systems:&Vec<System>){
+    pub fn update(&self, ui:&mut conrod::UiCell, screenSize:&Dimensions, systems:&Vec<System>, time:&Duration){
         use conrod::widget::Circle;
         use conrod::{Positionable, Widget};
         use conrod::Colorable;
@@ -53,7 +53,7 @@ impl Camera{
                 let mut generator = ui.widget_id_generator();
                 generator.next()
             };
-            let position = self.worldToScreen(screenSize, body.calcPosition(Duration::zero()));
+            let position = self.worldToScreen(screenSize, body.calcPosition(time));
             println!("{}", position);
             Circle::fill(5.0).x(position.x).y(position.y).color(conrod::color::WHITE).set(nextId, ui);
         }

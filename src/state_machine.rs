@@ -28,6 +28,7 @@ pub trait State {
     fn update(&mut self, ui:&mut conrod::UiCell)-> StateChange{None}
     fn exit(&mut self,){}
     fn input(&mut self, input:Input) -> StateChange{None}
+    fn poll_event(&self) -> StateEvent {StateEvent::Idle}
 }
 
 // do nothing state, for init
@@ -62,4 +63,14 @@ impl StateMachine{
             self.change_state(statebox);
         }
     }
+    // allows seperate treats managed by the state
+    // to ask for simple stuff such as updates
+    pub fn poll_events(&self) -> StateEvent{
+        self.state.poll_event()
+    }
+}
+#[derive(Clone,Copy)]
+pub enum StateEvent{
+    Idle,
+    WantsUpdate
 }
