@@ -18,7 +18,8 @@ impl StellarBody{
         }
         // cut off previous orbits
         let cycleProgress:i64 = sinceStartOfSimulation.num_seconds() % orbitTime; // calculate the current orbit progress
-        let progressFraction:f64 = (cycleProgress as f64)/(orbitTime as f64);
+        use std::f64::consts;
+        let progressFraction:f64 = ((cycleProgress as f64)/(orbitTime as f64)) * consts::PI * 2.0;
         // calulate the location
         Position{
             x: progressFraction.sin() * self.distance,

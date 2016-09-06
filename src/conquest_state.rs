@@ -26,13 +26,13 @@ use geometry::*;
 use stellar_bodies::*;
 use camera::Camera;
 use std::thread;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, Mutex};
 use std::sync::mpsc::{channel, Receiver};
 pub struct ConquestState{
     ids:Ids,
     camera:Camera,
     systems:Vec<System>,
-    event:Arc<RwLock<StateEvent>>,
+    event:Arc<Mutex<StateEvent>>,
     gameTime:Arc<RwLock<Duration>>,
 }
 impl State for ConquestState{
@@ -43,22 +43,25 @@ impl State for ConquestState{
             while true{
                 // at this point we gave up on channels and let locks into our
                 // hearts, it actually made things simpler, believe it or not.
-                *gameTimeRef.write().expect("poisned") = (
-                    *gameTimeRef.read().expect("poison time")
-                )+ Duration::weeks(1);
-                *eventref.write().expect(
+                let previous = (*gameTimeRef.read().expect("poison time"));
+                *gameTimeRef.write().expect("poisned") = previous + Duration::weeks(1);
+                *eventref.lock().expect(
                     "posining on set event") = StateEvent::WantsUpdate;
                 use std::time;
-                thread::sleep(time::Duration::from_millis(100));
+                // about 50~60 is the minimum witout cpu buildup
+                // maybe I should detect that and auto throttle back or something
+                thread::sleep(time::Duration::from_millis(100)); 
             }
         });
         None
     }
     fn poll_event(&self) -> StateEvent{
-        *self.event.read().expect("poisining on read event")
+        let mut shared = self.event.lock().expect("poisining on read event");
+        let result = *shared;
+        *shared = StateEvent::Idle;
+        result
     }
     fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
-        println!("update");
         use conrod::{color, widget, Colorable, Widget};
         let canvas = widget::Canvas::new();
         canvas
@@ -67,6 +70,7 @@ impl State for ConquestState{
             .set(self.ids.canvas_root, ui) ;
         let dimens = ui.window_dim();
         let time = *self.gameTime.read().expect("there is no time");
+        println!("update {:?}, {}", time, time.num_weeks());
         self.camera.update(ui, &dimens, &self.systems, &time);
         None
     }
@@ -121,7 +125,7 @@ impl ConquestState{
                     ]
                 )
             ],
-            event:Arc::new(RwLock::new(StateEvent::Idle)),
+            event:Arc::new(Mutex::new(StateEvent::Idle)),
             gameTime:Arc::new(RwLock::new(Duration::zero())),
         }
     }

@@ -15,7 +15,6 @@ pub struct Camera{
 }
 impl Camera{
     fn worldToScreen(&self, screenSize:&Dimensions, position:Position) -> Position{
-        println!("screensize {:?}", screenSize);
         let factor = Position::new(screenSize[0], screenSize[1]) / Position::new(self.width, self.height);
         (position + self.position) * factor
     }
@@ -54,7 +53,6 @@ impl Camera{
                 generator.next()
             };
             let position = self.worldToScreen(screenSize, body.calcPosition(time));
-            println!("{}", position);
             Circle::fill(5.0).x(position.x).y(position.y).color(conrod::color::WHITE).set(nextId, ui);
         }
     }
