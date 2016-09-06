@@ -23,24 +23,38 @@ use geometry::*;
 
 pub struct StellarBody{
     pub name:&'static str,
-    pub orbitTime:Duration,
+    pub orbit_time:Duration,
     pub distance:Au,
 }
 impl StellarBody{
-    pub fn calcPosition(&self, sinceStartOfSimulation:&Duration) -> Position{
-        let orbitTime:i64 = self.orbitTime.num_seconds();
-        if orbitTime == 0 {
+    pub fn new(name:&'static str, orbit:Duration, distance:Au) -> StellarBody{
+        StellarBody{
+            name:name,
+            orbit_time: orbit,
+            distance:distance,
+        }
+    }
+    pub fn create_single_star(name:&'static str)->StellarBody{
+        StellarBody{
+            name:name,
+            orbit_time: Duration::zero(),
+            distance:0.0,
+        }
+    }
+    pub fn calc_position(&self, since_start_of_simulation:&Duration) -> Position{
+        let orbit_time:i64 = self.orbit_time.num_seconds();
+        if orbit_time == 0 {
             // prevents division by 0
             return center;
         }
         // cut off previous orbits
-        let cycleProgress:i64 = sinceStartOfSimulation.num_seconds() % orbitTime; // calculate the current orbit progress
+        let cycle_pogress:i64 = since_start_of_simulation.num_seconds() % orbit_time; // calculate the current orbit progress
         use std::f64::consts;
-        let progressFraction:f64 = ((cycleProgress as f64)/(orbitTime as f64)) * consts::PI * 2.0;
+        let progress_fraction:f64 = ((cycle_pogress as f64)/(orbit_time as f64)) * consts::PI * 2.0;
         // calulate the location
         Position{
-            x: progressFraction.sin() * self.distance,
-            y: progressFraction.cos() * self.distance
+            x: progress_fraction.sin() * self.distance,
+            y: progress_fraction.cos() * self.distance
         }
     }
 }
@@ -52,9 +66,9 @@ pub struct System{
 impl System{
     pub fn new(position:Position, bodies:Vec<StellarBody>) -> System{
         let radius = bodies.iter().fold(0.0,|prev,body|->f64{
-            let newDist = body.distance;
-            if newDist > prev{
-                newDist
+            let new_dist = body.distance;
+            if new_dist > prev{
+                new_dist
             }else{
                 prev
             }
@@ -63,10 +77,3 @@ impl System{
     }
 }
 
-pub fn create_single_star(name:&'static str)->StellarBody{
-    StellarBody{
-        name:name,
-        orbitTime: Duration::zero(),
-        distance:0.0,
-    }
-}

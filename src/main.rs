@@ -17,13 +17,13 @@
 
 // main file where we load the program and do the window loop
 // (I'm not a bliever of a sparse main file)
-
+#![allow(non_upper_case_globals)]
 #[macro_use] extern crate conrod;
 extern crate find_folder;
 extern crate piston_window;
 extern crate time;
 
-use piston_window::{EventLoop, OpenGL, PistonWindow, RenderEvent, WindowSettings, Event};
+use piston_window::{EventLoop, OpenGL, PistonWindow, WindowSettings};
 use piston_window::Event::*;
 
 mod state_machine;
@@ -32,6 +32,7 @@ mod conquest_state;
 mod geometry;
 mod stellar_bodies;
 mod camera;
+mod update_thread;
 
 use state_machine::StateMachine;
 use begin_state::BeginState;

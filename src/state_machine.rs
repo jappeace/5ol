@@ -26,9 +26,9 @@ use piston_window::Input;
 pub type StateChange = Option<Box<State>>;
 pub trait State {
     fn enter(&mut self )-> StateChange{ None }
-    fn update(&mut self, ui:&mut conrod::UiCell)-> StateChange{None}
+    fn update(&mut self, &mut conrod::UiCell)-> StateChange{None}
     fn exit(&mut self,){}
-    fn input(&mut self, input:Input) -> StateChange{None}
+    fn input(&mut self, Input) -> StateChange{None}
     fn poll_event(&self) -> StateEvent {StateEvent::Idle}
 }
 

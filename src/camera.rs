@@ -31,14 +31,14 @@ pub struct Camera{
     height:Au,
 }
 impl Camera{
-    fn worldToScreen(&self, screenSize:&Dimensions, position:Position) -> Position{
-        let factor = Position::new(screenSize[0], screenSize[1]) / Position::new(self.width, self.height);
+    fn world_to_screen(&self, screen_size:&Dimensions, position:Position) -> Position{
+        let factor = Position::new(screen_size[0], screen_size[1]) / Position::new(self.width, self.height);
         (position + self.position) * factor
     }
     pub fn new(position:Position, width:Au, height:Au)->Camera{
-        Camera{position:position, width:2.0, height:2.0}
+        Camera{position:position, width:width, height:height}
     }
-    pub fn update(&self, ui:&mut conrod::UiCell, screenSize:&Dimensions, systems:&Vec<System>, time:&Duration){
+    pub fn update(&self, ui:&mut conrod::UiCell, screen_size:&Dimensions, systems:&Vec<System>, time:&Duration){
         use conrod::widget::Circle;
         use conrod::{Positionable, Widget};
         use conrod::Colorable;
@@ -65,12 +65,12 @@ impl Camera{
         }
         ).flat_map(|x| &x.bodies);
         for body in visible{
-            let nextId = {
+            let next_id = {
                 let mut generator = ui.widget_id_generator();
                 generator.next()
             };
-            let position = self.worldToScreen(screenSize, body.calcPosition(time));
-            Circle::fill(5.0).x(position.x).y(position.y).color(conrod::color::WHITE).set(nextId, ui);
+            let position = self.world_to_screen(screen_size, body.calc_position(time));
+            Circle::fill(5.0).x(position.x).y(position.y).color(conrod::color::WHITE).set(next_id, ui);
         }
     }
 }

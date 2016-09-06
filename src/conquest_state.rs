@@ -21,43 +21,24 @@ use state_machine::{State, StateChange, StateEvent};
 use piston_window::Input;
 use conrod;
 use time::Duration;
-use piston_window::keyboard::Key;
 
 use geometry::*;
 use stellar_bodies::*;
 use camera::Camera;
-use std::thread;
-use std::sync::{Arc, RwLock, Mutex};
-use std::sync::mpsc::{channel, Receiver};
+use update_thread::Updater;
 pub struct ConquestState{
     ids:Ids,
     camera:Camera,
     systems:Vec<System>,
-    event:Arc<Mutex<StateEvent>>,
-    gameTime:Arc<RwLock<Duration>>,
+    updater:Updater,
 }
 impl State for ConquestState{
     fn enter(&mut self) -> StateChange{
-        let eventref = self.event.clone();
-        let gameTimeRef = self.gameTime.clone();
-        thread::spawn(move|| {
-            while true{
-                // at this point we gave up on channels and let locks into our
-                // hearts, it actually made things simpler, believe it or not.
-                let previous = (*gameTimeRef.read().expect("poison time"));
-                *gameTimeRef.write().expect("poisned") = previous + Duration::weeks(1);
-                *eventref.lock().expect(
-                    "posining on set event") = StateEvent::WantsUpdate;
-                use std::time;
-                // about 50~60 is the minimum witout cpu buildup
-                // maybe I should detect that and auto throttle back or something
-                thread::sleep(time::Duration::from_millis(100)); 
-            }
-        });
+        self.updater.start();
         None
     }
     fn poll_event(&self) -> StateEvent{
-        let mut shared = self.event.lock().expect("poisining on read event");
+        let mut shared = self.updater.event.lock().expect("poisining on read event");
         let result = *shared;
         *shared = StateEvent::Idle;
         result
@@ -70,7 +51,7 @@ impl State for ConquestState{
             .crop_kids()
             .set(self.ids.canvas_root, ui) ;
         let dimens = ui.window_dim();
-        let time = *self.gameTime.read().expect("there is no time");
+        let time = *self.updater.game_time.read().expect("there is no time");
         println!("update {:?}, {}", time, time.num_weeks());
         self.camera.update(ui, &dimens, &self.systems, &time);
         None
@@ -94,7 +75,7 @@ impl State for ConquestState{
 }
 
 impl ConquestState{
-    pub fn new(mut generator: conrod::widget::id::Generator)->ConquestState{
+    pub fn new(generator: conrod::widget::id::Generator)->ConquestState{
         ConquestState{
             ids:Ids::new(generator),
             camera:Camera::new(center,2.0,2.0),
@@ -102,32 +83,15 @@ impl ConquestState{
                 System::new(
                     center,
                     vec![
-                        create_single_star("sun"),
-                        StellarBody{
-                            name:"mercury",
-                            orbitTime:Duration::days(88),
-                            distance:0.387098 
-                        },
-                        StellarBody{
-                            name:"venus",
-                            orbitTime:Duration::days(225),
-                            distance:0.723332
-                        },
-                        StellarBody{
-                            name:"earth",
-                            orbitTime:Duration::days(365),
-                            distance:1.0
-                        },
-                        StellarBody{
-                            name:"mars",
-                            orbitTime:Duration::days(780),
-                            distance:1.523679
-                        },
+                        StellarBody::create_single_star("sun"),
+                        StellarBody::new("mercury", Duration::days(88), 0.387098),
+                        StellarBody::new("venus", Duration::days(225),0.723332),
+                        StellarBody::new("earth",Duration::days(365),1.0),
+                        StellarBody::new("mars",Duration::days(780),1.523679),
                     ]
                 )
             ],
-            event:Arc::new(Mutex::new(StateEvent::Idle)),
-            gameTime:Arc::new(RwLock::new(Duration::zero())),
+            updater:Updater::new(StateEvent::Idle, Duration::zero())
         }
     }
 }

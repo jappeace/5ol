@@ -18,8 +18,7 @@
 // this file describes the first state of the game, showing a little welcome
 // message.
 
-use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget, Scalar};
-use conrod::widget::Line;
+use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget};
 use conrod;
 
 use state_machine::{State, StateChange};
@@ -29,14 +28,13 @@ pub struct BeginState{
     ids:Ids
 }
 impl BeginState{
-    pub fn new(mut generator: conrod::widget::id::Generator)->BeginState{
+    pub fn new(generator: conrod::widget::id::Generator)->BeginState{
         BeginState{ids:Ids::new(generator)}
     }
 }
 impl State for BeginState {
     fn update(&mut self, ui:&mut conrod::UiCell) -> StateChange{
 
-        const PAD: Scalar = 20.0;
         const INTRO_TEXT: &'static str = "After a long power struggle over now several generations, 
     you Kim Ill Sung III has finally crushed all opposition.
     With no-one else left daring to oppose you mankind puts it faith in you,
@@ -50,7 +48,7 @@ impl State for BeginState {
             .align_text_left()
             .line_spacing(10.0)
             .set(self.ids.text_intro, ui);
-        for click in widget::Button::new()
+        for _ in widget::Button::new()
             .w_h(200.0, 80.0)
             .label("Begin your conquest")
             .color(color::DARK_CHARCOAL)
@@ -61,10 +59,6 @@ impl State for BeginState {
         None
     }
 }
-
-// Button matrix dimensions.
-const ROWS: usize = 10;
-const COLS: usize = 24;
 
 // Generate a unique `WidgetId` for each widget.
 widget_ids! {

@@ -34,15 +34,15 @@ impl Position{
         }
     }
     fn dot(&self, with:Position) -> f64{
-        self.length() * with.length() * self.angleRad(with).cos()
+        self.length() * with.length() * self.angle_rad(with).cos()
     }
-    fn lengthSq(&self)->f64{
+    fn length_sq(&self)->f64{
         self.x*self.x+self.y*self.y
     }
     fn length(&self)->f64{
-        self.lengthSq().sqrt()
+        self.length_sq().sqrt()
     }
-    fn angleRad(&self, other:Position) -> f64{
+    fn angle_rad(&self, other:Position) -> f64{
         (self.y - other.y).atan2(self.x - other.x)
     }
 }
@@ -83,7 +83,7 @@ impl Neg for Position{
     }
 }
 
-type Line = [Position;2];
+pub type Line = [Position;2];
 
 pub struct Disk{
     pub position:Position,
