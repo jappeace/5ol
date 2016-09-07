@@ -53,7 +53,7 @@ impl State for ConquestState{
         self.camera.update(ui, &dimens, &self.systems, &time);
 
 
-        let ispaused = self.updater.controll.read().expect("accesing paused").paused;
+        let ispaused = self.updater.controll.read().expect("accesing paused").is_paused;
         let pausedlabel = {
             if ispaused{
                 ">"
@@ -74,9 +74,9 @@ impl State for ConquestState{
         let mut previous = self.ids.button_pause;
         for &(label, speed, id) in [
             ("1>", 2000, self.ids.button_speed_one),
-            ("2>", 800, self.ids.button_speed_two),
-            ("3>", 400, self.ids.button_speed_three),
-            ("4>", 150, self.ids.button_speed_four),
+            ("2>", 500, self.ids.button_speed_two),
+            ("3>", 200, self.ids.button_speed_three),
+            ("4>", 50, self.ids.button_speed_four),
             ("5>", 0, self.ids.button_speed_five)
         ].iter(){
             for _ in widget::Button::new()

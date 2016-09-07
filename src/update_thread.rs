@@ -1,6 +1,7 @@
-// This file contains the core update thread, ie make sure time runs
+// This file contains the core update thread, ie make sure time update_times
 
 use std::thread;
+use std::time;
 use std::sync::{Arc, RwLock, Mutex};
 use state_machine::StateEvent;
 use time::Duration;
@@ -18,9 +19,9 @@ impl Updater{
             controll:Arc::new(RwLock::new(
                 UpdateControll{
                     pace_ms:250,
-                    running:true,
+                    is_update_timening:true,
                     granuality:Duration::weeks,
-                    paused:true
+                    is_paused:true
                 }
             ))
         }
@@ -32,41 +33,77 @@ impl Updater{
         result
     }
     pub fn start(&self) {
-        let event = self.event.clone();
         let game_time = self.game_time.clone();
         let controll = self.controll.clone();
         thread::spawn(move|| {
-            Updater::run(event, game_time, controll);
+            Updater::update_time(game_time, controll);
+        });
+        let event = self.event.clone();
+        let controll = self.controll.clone();
+        thread::spawn(move|| {
+            Updater::update_gui(event, controll);
         });
     }
-    fn run(event:Arc<Mutex<StateEvent>>, game_time:Arc<RwLock<Duration>>, controll:Arc<RwLock<UpdateControll>>){
-        use std::time;
-        let one_ms = time::Duration::from_millis(1);
+    fn read_status(controll:&Arc<RwLock<UpdateControll>>) -> ThreadStatus{
+        if !controll.read().expect("reading is_update_timening").is_update_timening{
+            return ThreadStatus::Aborted;
+        }
+        if controll.read().expect("reading is_paused").is_paused {
+            return ThreadStatus::Paused;
+        }
+        ThreadStatus::Executing
+    }
+    fn update_gui(event:Arc<Mutex<StateEvent>>, controll:Arc<RwLock<UpdateControll>>){
+        let hundert_ms = time::Duration::from_millis(100);
         loop{
-            if controll.read().expect("reading paused").paused {
-                thread::yield_now();
-                // just yielding is to little, the thread will still consume 1 core
-                thread::sleep(one_ms); 
-                continue;
+            match Updater::read_status(&controll) {
+                ThreadStatus::Aborted => break,
+                ThreadStatus::Paused =>{
+                    Updater::sleep();
+                    continue;
+                }
+                ThreadStatus::Executing => {}
             }
-            {
-                // at this point we gave up on channels and let locks into our
-                // hearts, it actually made things simpler, believe it or not.
-                let previous = *game_time.read().expect("poison time");
-                let mktimefunc = controll.read().unwrap().granuality;
-                *game_time.write().expect("poisned") = previous + mktimefunc(1);
-                *event.lock().expect(
-                    "posining on set event") = StateEvent::WantsUpdate;
-            } // drop the other locks, so we don't keep a lock while waiting
-            // about 50~60 is the minimum witout cpu buildup
-            // maybe I should detect that and auto throttle back or something
+            *event.lock().expect(
+                "posining on set event") = StateEvent::WantsUpdate;
+
+            // about 50~60 is the minimum witout cpu buildup from conrod,
+            // we keep a safe 100ms, this runs on a seperate thread from the
+            // main updater, so on speed 5 it can go wild, we just don't see
+            // all updates
+            // see https://github.com/PistonDevelopers/conrod/issues/814
+            thread::sleep(hundert_ms);
+        }
+    }
+    fn sleep(){
+        let one_ms = time::Duration::from_millis(1);
+        thread::yield_now();
+        // just yielding is to little, the thread will still consume 1 core
+        thread::sleep(one_ms); 
+    }
+    fn update_time(game_time:Arc<RwLock<Duration>>, controll:Arc<RwLock<UpdateControll>>){
+        loop{
+            match Updater::read_status(&controll) {
+                ThreadStatus::Aborted => break,
+                ThreadStatus::Paused =>{
+                    Updater::sleep();
+                    continue;
+                }
+                ThreadStatus::Executing => {
+                    // at this point we gave up on channels and let locks into our
+                    // hearts, it actually made things simpler, believe it or not.
+                    let previous = *game_time.read().expect("poison time");
+                    let mktimefunc = controll.read().unwrap().granuality;
+                    *game_time.write().expect("poisned") = previous + mktimefunc(1);
+                }
+            }
             let pace = time::Duration::from_millis(controll.read().expect("reading pace").pace_ms);
             thread::sleep(pace);
         }
     }
     pub fn toggle_pause(&mut self){
-        let ispaused = self.controll.read().expect("reading pause status").paused;
-        self.controll.write().expect("writing pause status").paused = !ispaused;
+        let isis_paused = self.controll.read().expect("reading pause status").is_paused;
+        self.controll.write().expect("writing pause status").is_paused = !isis_paused;
     }
     pub fn set_granuality(&mut self, to:fn(i64)->Duration){
         self.controll.write().expect("writing new granu").granuality = to;
@@ -75,7 +112,13 @@ impl Updater{
 // allow the pacing of the game trough this struct
 pub struct UpdateControll{
     pub pace_ms:u64,
-    pub running:bool, 
+    pub is_update_timening:bool, 
     pub granuality:fn(i64)->Duration,
-    pub paused:bool,
+    pub is_paused:bool,
+}
+
+enum ThreadStatus{
+    Aborted,
+    Paused,
+    Executing
 }
