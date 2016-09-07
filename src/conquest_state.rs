@@ -38,13 +38,10 @@ impl State for ConquestState{
         None
     }
     fn poll_event(&self) -> StateEvent{
-        let mut shared = self.updater.event.lock().expect("poisining on read event");
-        let result = *shared;
-        *shared = StateEvent::Idle;
-        result
+        self.updater.get_event()
     }
     fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
-        use conrod::{color, widget, Colorable, Widget};
+        use conrod::{color, widget, Colorable, Widget, Positionable, Labelable, Sizeable};
         let canvas = widget::Canvas::new();
         canvas
             .color(color::BLUE)
@@ -54,6 +51,76 @@ impl State for ConquestState{
         let time = *self.updater.game_time.read().expect("there is no time");
         println!("update {:?}, {}", time, time.num_weeks());
         self.camera.update(ui, &dimens, &self.systems, &time);
+
+
+        let ispaused = self.updater.controll.read().expect("accesing paused").paused;
+        let pausedlabel = {
+            if ispaused{
+                ">"
+            }else{
+                "❚❚"
+            }
+        };
+        for _ in widget::Button::new()
+            .w_h(30.0,30.0)
+            .top_right_with_margin_on(self.ids.canvas_root, 10.0)
+            .label(pausedlabel)
+            .color(color::DARK_CHARCOAL)
+            .label_color(color::GRAY)
+            .set(self.ids.button_pause, ui){
+                self.updater.toggle_pause();
+        }
+
+        let mut previous = self.ids.button_pause;
+        for &(label, speed, id) in [
+            ("1>", 2000, self.ids.button_speed_one),
+            ("2>", 800, self.ids.button_speed_two),
+            ("3>", 400, self.ids.button_speed_three),
+            ("4>", 150, self.ids.button_speed_four),
+            ("5>", 0, self.ids.button_speed_five)
+        ].iter(){
+            for _ in widget::Button::new()
+                .w_h(30.0,30.0)
+                .left_from(previous,10.0)
+                .label(label)
+                .color(color::DARK_CHARCOAL)
+                .label_color(color::GRAY)
+                .set(id, ui){
+                    self.updater.controll.write().unwrap().pace_ms = speed;
+                }
+            previous = id;
+        }
+        for _ in widget::Button::new()
+            .w_h(30.0,30.0)
+            .down_from(self.ids.button_pause, 10.0)
+            .align_right_of(self.ids.button_pause)
+            .label("w")
+            .color(color::DARK_CHARCOAL)
+            .label_color(color::GRAY)
+            .set(self.ids.button_granu_weeks, ui){
+                self.updater.set_granuality(Duration::weeks);
+            }
+        previous = self.ids.button_granu_weeks;
+        let buttons:[(&'static str, fn(i64)->Duration, _); 5] = [
+            ("d", Duration::days, self.ids.button_granu_days),
+            ("h", Duration::hours, self.ids.button_granu_hours),
+            ("m", Duration::minutes, self.ids.button_granu_minutes),
+            ("s", Duration::seconds, self.ids.button_granu_seconds),
+            ("ms", Duration::milliseconds, self.ids.button_granu_milliseconds),
+        ];
+        for &(label, function, id) in buttons.iter(){
+            for _ in widget::Button::new()
+                .w_h(30.0,30.0)
+                .left_from(previous,10.0)
+                .down_from(self.ids.button_pause, 10.0)
+                .label(label)
+                .color(color::DARK_CHARCOAL)
+                .label_color(color::GRAY)
+                .set(id, ui){
+                    self.updater.set_granuality(function);
+                }
+            previous = id;
+        }
         None
     }
     fn input(&mut self, input:Input) -> StateChange{
@@ -66,6 +133,7 @@ impl State for ConquestState{
                 S => self.camera.position.y += 0.1,
                 D => self.camera.position.x -= 0.1,
                 A => self.camera.position.x += 0.1,
+                Space => self.updater.toggle_pause(),
                 _ => {}
             },
             _ => {}
@@ -99,5 +167,17 @@ impl ConquestState{
 widget_ids! {
     Ids {
         canvas_root,
+        button_pause,
+        button_speed_one,
+        button_speed_two,
+        button_speed_three,
+        button_speed_four,
+        button_speed_five,
+        button_granu_weeks,
+        button_granu_days,
+        button_granu_hours,
+        button_granu_minutes,
+        button_granu_seconds,
+        button_granu_milliseconds,
     }
 }
