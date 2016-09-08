@@ -50,8 +50,7 @@ impl State for ConquestState{
         let dimens = ui.window_dim();
         let time = *self.updater.game_time.read().expect("there is no time");
         println!("update {:?}, {}", time, time.num_weeks());
-        self.camera.update(ui, &dimens, &self.systems, &time);
-
+        self.camera.update(ui, &dimens, &mut self.systems, &time);
 
         let ispaused = self.updater.controll.read().expect("accesing paused").is_paused;
         let pausedlabel = {

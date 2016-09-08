@@ -20,11 +20,18 @@ pub type Au = f64;
 
 use time::Duration;
 use geometry::*;
+use petgraph::graph::NodeIndex;
 
 pub struct StellarBody{
     pub name:&'static str,
     pub orbit_time:Duration,
     pub distance:Au,
+    // conrod uses an id to keep track of widgets,
+    // however since the stellar bodies are generated we need to decide these
+    // on the fly, see: http://docs.piston.rs/conrod/conrod/widget/id/type.Id.html
+    // the initial approach just generate a new one forever, but I think that
+    // is just a memory leak.
+    pub view_id:Option<NodeIndex<u32>>,
 }
 impl StellarBody{
     pub fn new(name:&'static str, orbit:Duration, distance:Au) -> StellarBody{
@@ -32,14 +39,11 @@ impl StellarBody{
             name:name,
             orbit_time: orbit,
             distance:distance,
+            view_id:None
         }
     }
     pub fn create_single_star(name:&'static str)->StellarBody{
-        StellarBody{
-            name:name,
-            orbit_time: Duration::zero(),
-            distance:0.0,
-        }
+        StellarBody::new(name, Duration::zero(), 0.0)
     }
     pub fn calc_position(&self, since_start_of_simulation:&Duration) -> Position{
         let orbit_time:i64 = self.orbit_time.num_seconds();

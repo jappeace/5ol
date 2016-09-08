@@ -22,6 +22,7 @@
 extern crate find_folder;
 extern crate piston_window;
 extern crate time;
+extern crate petgraph;
 
 use piston_window::{EventLoop, OpenGL, PistonWindow, WindowSettings};
 use piston_window::Event::*;

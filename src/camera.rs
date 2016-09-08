@@ -38,9 +38,9 @@ impl Camera{
     pub fn new(position:Position, width:Au, height:Au)->Camera{
         Camera{position:position, width:width, height:height}
     }
-    pub fn update(&self, ui:&mut conrod::UiCell, screen_size:&Dimensions, systems:&Vec<System>, time:&Duration){
-        use conrod::widget::Circle;
-        use conrod::{Positionable, Widget};
+    pub fn update(&self, ui:&mut conrod::UiCell, screen_size:&Dimensions, systems:&mut Vec<System>, time:&Duration){
+        use conrod::widget::{Button, Circle};
+        use conrod::{Positionable, Widget, Sizeable, Labelable};
         use conrod::Colorable;
         let camrect = Rectangle{
             one: Position{
@@ -53,7 +53,7 @@ impl Camera{
             }
         };
         // cull the ones outside view, (and ignoring their sub bodies)
-        let visible = systems.iter().filter(|x| -> bool {
+        let visible = systems.iter_mut().filter(|x| -> bool {
             let disk = Disk{
                 position:x.position,
                 radius:x.radius};
@@ -63,14 +63,20 @@ impl Camera{
             disk.contains([camrect.br(), camrect.bl()]) ||
             disk.contains([camrect.bl(), camrect.tl()])
         }
-        ).flat_map(|x| &x.bodies);
+        ).flat_map(|x| &mut x.bodies);
         for body in visible{
-            let next_id = {
-                let mut generator = ui.widget_id_generator();
-                generator.next()
+            let view_id = match body.view_id{
+                None => {
+                    let newid = ui.widget_id_generator().next();
+                    body.view_id = Some(newid);
+                    newid
+                }
+                Some(x) => x
             };
             let position = self.world_to_screen(screen_size, body.calc_position(time));
-            Circle::fill(5.0).x(position.x).y(position.y).color(conrod::color::WHITE).set(next_id, ui);
+            for _ in Button::new().w_h(10.0,10.0).x(position.x).y(position.y).set(view_id, ui){
+                println!("click {}", body.name);
+            }
         }
     }
 }

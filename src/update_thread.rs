@@ -54,7 +54,7 @@ impl Updater{
         ThreadStatus::Executing
     }
     fn update_gui(event:Arc<Mutex<StateEvent>>, controll:Arc<RwLock<UpdateControll>>){
-        let hundert_ms = time::Duration::from_millis(100);
+        let hundert_ms = time::Duration::from_millis(16);
         loop{
             match Updater::read_status(&controll) {
                 ThreadStatus::Aborted => break,
@@ -66,7 +66,6 @@ impl Updater{
             }
             *event.lock().expect(
                 "posining on set event") = StateEvent::WantsUpdate;
-
             // about 50~60 is the minimum witout cpu buildup from conrod,
             // we keep a safe 100ms, this runs on a seperate thread from the
             // main updater, so on speed 5 it can go wild, we just don't see
