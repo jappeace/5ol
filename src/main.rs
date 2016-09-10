@@ -34,6 +34,7 @@ mod geometry;
 mod stellar_bodies;
 mod camera;
 mod update_thread;
+mod planet_state;
 
 use state_machine::StateMachine;
 use begin_state::BeginState;

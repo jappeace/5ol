@@ -18,7 +18,6 @@
 // does the world to screen mapping (and also renders
 // the bodies right now, this will probably change when rendering becomes more 
 // complex)
-
 use geometry::*;
 use stellar_bodies::*;
 use conrod::Dimensions;
@@ -38,45 +37,45 @@ impl Camera{
     pub fn new(position:Position, width:Au, height:Au)->Camera{
         Camera{position:position, width:width, height:height}
     }
-    pub fn update(&self, ui:&mut conrod::UiCell, screen_size:&Dimensions, systems:&mut Vec<System>, time:&Duration){
+    pub fn create_projection<'a>(&self, screen_size:&'a Dimensions) -> Projection<'a>{
+        Projection{
+            view_port:Rectangle{
+                one: Position{
+                    x:self.position.x-self.width/2.0,
+                    y:self.position.y-self.height/2.0,
+                },
+                two: Position{
+                    x:self.position.x+self.width/2.0,
+                    y:self.position.y+self.height/2.0,
+                }
+            },
+            screen_size:screen_size
+        }
+    }
+    pub fn update(&self, ui:&mut conrod::UiCell, screen_size:&Dimensions, systems:&mut Vec<System>, time:&Duration) {
         use conrod::widget::{Button, Circle};
         use conrod::{Positionable, Widget, Sizeable, Labelable};
         use conrod::Colorable;
-        let camrect = Rectangle{
-            one: Position{
-                x:self.position.x-self.width/2.0,
-                y:self.position.y-self.height/2.0,
-            },
-            two: Position{
-                x:self.position.x+self.width/2.0,
-                y:self.position.y+self.height/2.0,
-            }
-        };
         // cull the ones outside view, (and ignoring their sub bodies)
-        let visible = systems.iter_mut().filter(|x| -> bool {
-            let disk = Disk{
-                position:x.position,
-                radius:x.radius};
-            camrect.contains(&x.position) ||
-            disk.contains([camrect.tl(), camrect.tr()]) ||
-            disk.contains([camrect.tr(), camrect.br()]) ||
-            disk.contains([camrect.br(), camrect.bl()]) ||
-            disk.contains([camrect.bl(), camrect.tl()])
-        }
-        ).flat_map(|x| &mut x.bodies);
-        for body in visible{
-            let view_id = match body.view_id{
-                None => {
-                    let newid = ui.widget_id_generator().next();
-                    body.view_id = Some(newid);
-                    newid
-                }
-                Some(x) => x
-            };
-            let position = self.world_to_screen(screen_size, body.calc_position(time));
-            for _ in Button::new().w_h(10.0,10.0).x(position.x).y(position.y).set(view_id, ui){
-                println!("click {}", body.name);
-            }
-        }
+    }
+}
+struct Projection<'a>{
+    view_port:Rectangle,
+    screen_size:&'a Dimensions
+
+}
+impl<'a> Projection<'a>{
+    pub fn world_to_screen(&self, position:&Position)->Position{
+        let factor = Position::new(self.screen_size[0], self.screen_size[1]) /
+            Position::new(self.view_port.width(), self.view_port.height());
+        (position.clone() + self.view_port.center()) * factor
+    }
+    pub fn is_visible(&self, disk:&Disk) -> bool{
+        let (tl, tr, bl, br) = self.view_port.corners();
+        self.view_port.contains(&disk.position) ||
+            disk.contains([tl, tr]) ||
+            disk.contains([tr, br]) ||
+            disk.contains([br, bl]) ||
+            disk.contains([bl, tl])
     }
 }

@@ -25,10 +25,15 @@ use piston_window::Input;
 
 pub type StateChange = Option<Box<State>>;
 pub trait State {
-    fn enter(&mut self )-> StateChange{ None }
+    // previous states allows new states to go back to the previous state,
+    // its really hard to do this otherwise, since the states never own themselves
+    fn enter(&mut self, previous_state:Box<State>)-> StateChange{ None }
     fn update(&mut self, &mut conrod::UiCell)-> StateChange{None}
     fn exit(&mut self,){}
     fn input(&mut self, Input) -> StateChange{None}
+
+    // this function allows a state to send commands to the main render loop
+    // rihgt now only used to ask for regular render updates
     fn poll_event(&self) -> StateEvent {StateEvent::Idle}
 }
 
@@ -42,17 +47,14 @@ pub struct StateMachine{
 impl StateMachine{
     pub fn change_state(&mut self, to:Box<State>) {
         self.state.exit();
+        let old_state = self.state;
         self.state = to;
-        if let Some(statebox) = self.state.enter(){
+        if let Some(statebox) = self.state.enter(old_state){
             self.change_state(statebox);
         }
     }
     pub fn new() -> StateMachine{
-        let mut result = StateMachine{state:Box::new(UnitState{})};
-        if let Some(statebox) = result.state.enter(){
-            result.change_state(statebox);
-        }
-        return result
+        StateMachine{state:Box::new(UnitState{})}
     }
     pub fn update(&mut self, ui:&mut conrod::UiCell){
         if let Some(statebox) = self.state.update(ui){

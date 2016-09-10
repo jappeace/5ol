@@ -19,7 +19,7 @@ impl Updater{
             controll:Arc::new(RwLock::new(
                 UpdateControll{
                     pace_ms:250,
-                    is_update_timening:true,
+                    is_updating_timing:true,
                     granuality:Duration::weeks,
                     is_paused:true
                 }
@@ -45,7 +45,7 @@ impl Updater{
         });
     }
     fn read_status(controll:&Arc<RwLock<UpdateControll>>) -> ThreadStatus{
-        if !controll.read().expect("reading is_update_timening").is_update_timening{
+        if !controll.read().expect("reading is_updating_timing").is_updating_timing{
             return ThreadStatus::Aborted;
         }
         if controll.read().expect("reading is_paused").is_paused {
@@ -111,7 +111,7 @@ impl Updater{
 // allow the pacing of the game trough this struct
 pub struct UpdateControll{
     pub pace_ms:u64,
-    pub is_update_timening:bool, 
+    pub is_updating_timing:bool, 
     pub granuality:fn(i64)->Duration,
     pub is_paused:bool,
 }

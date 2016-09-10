@@ -63,8 +63,7 @@ impl StellarBody{
     }
 }
 pub struct System{
-    pub position:Position,
-    pub radius:Au, // allows quick filtering
+    pub used_space:Disk,
     pub bodies:Vec<StellarBody>,
 }
 impl System{
@@ -77,7 +76,13 @@ impl System{
                 prev
             }
         });
-        System{position:position,bodies:bodies,radius:radius}
+        System{
+            used_space: Disk{
+                position:position,
+                radius:radius
+            },
+            bodies:bodies
+        }
     }
 }
 

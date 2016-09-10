@@ -114,6 +114,20 @@ impl Rectangle{
         let br = self.br();
         tl.x < position.x && tl.y < position.y && br.x > position.x && br.y > position.y
     }
+    pub fn width(&self) -> f64{
+        (self.one.x - self.two.x).abs()
+    }
+    pub fn height(&self) -> f64{
+        (self.one.y - self.two.y).abs()
+    }
+    pub fn center(&self) -> Position{
+        let tl = self.tl();
+        let two = 2.0;
+        Position{
+            x:(self.width()/two) + tl.x,
+            y:(self.height()/two) + tl.y
+        }
+    }
     pub fn tl(&self) -> Position{
         Position{
             x: if self.one.x < self.two.x {self.one.x} else {self.two.x},
@@ -137,6 +151,9 @@ impl Rectangle{
             x: if self.one.x < self.two.x {self.one.x} else {self.two.x},
             y: if self.one.y < self.two.y {self.one.y} else {self.two.y}
         }
+    }
+    pub fn corners(&self) -> (Position, Position, Position, Position){
+        (self.tl(), self.tr(), self.bl(), self.br())
     }
 }
 

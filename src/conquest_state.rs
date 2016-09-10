@@ -33,7 +33,7 @@ pub struct ConquestState{
     updater:Updater,
 }
 impl State for ConquestState{
-    fn enter(&mut self) -> StateChange{
+    fn enter(&mut self, _:Box<State>) -> StateChange{
         self.updater.start();
         None
     }
@@ -42,6 +42,7 @@ impl State for ConquestState{
     }
     fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
         use conrod::{color, widget, Colorable, Widget, Positionable, Labelable, Sizeable};
+        use conrod::widget::Button;
         let canvas = widget::Canvas::new();
         canvas
             .color(color::BLUE)
@@ -50,7 +51,27 @@ impl State for ConquestState{
         let dimens = ui.window_dim();
         let time = *self.updater.game_time.read().expect("there is no time");
         println!("update {:?}, {}", time, time.num_weeks());
-        self.camera.update(ui, &dimens, &mut self.systems, &time);
+        let projection = self.camera.create_projection(&dimens);
+        let visible = self.systems.iter_mut()
+            .filter(|x| projection.is_visible(&x.used_space))
+            .flat_map(|x| &mut x.bodies);
+
+        let generator = ui.widget_id_generator();
+        use planet_state::PlanetState;
+        for body in visible{
+            let view_id = match body.view_id{
+                None => {
+                    let newid = generator.next();
+                    body.view_id = Some(newid);
+                    newid
+                }
+                Some(x) => x
+            };
+            let position = projection.world_to_screen(&body.calc_position(&time));
+            for _ in Button::new().w_h(10.0,10.0).x(position.x).y(position.y).set(view_id, ui){
+                return Some(Box::new(PlanetState::new(generator, &body)));
+            }
+        }
 
         let ispaused = self.updater.controll.read().expect("accesing paused").is_paused;
         let pausedlabel = {
@@ -138,6 +159,10 @@ impl State for ConquestState{
             _ => {}
         }
         None
+        }
+    fn exit(&mut self){
+        // kill the threads
+        self.updater.controll.write().unwrap().is_updating_timing = false;
     }
 }
 
