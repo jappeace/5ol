@@ -19,7 +19,7 @@
 // the bodies right now, this will probably change when rendering becomes more 
 // complex)
 use geometry::*;
-use stellar_bodies::*;
+use model::*;
 use conrod::Dimensions;
 use conrod;
 use time::Duration;

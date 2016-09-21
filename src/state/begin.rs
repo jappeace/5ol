@@ -21,8 +21,9 @@
 use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget};
 use conrod;
 
-use state_machine::{State, StateChange};
-use conquest_state::ConquestState;
+use state::state_machine::{State, StateChange};
+use state::conquest::ConquestState;
+use model::GameModel;
 
 pub struct BeginState{
     ids:Ids
@@ -33,7 +34,7 @@ impl BeginState{
     }
 }
 impl State for BeginState {
-    fn update(&mut self, ui:&mut conrod::UiCell) -> StateChange{
+    fn update(&mut self, ui:&mut conrod::UiCell, model:&mut GameModel) -> StateChange{
 
         const INTRO_TEXT: &'static str = "After a long power struggle over now several generations, 
     you Kim Ill Sung III has finally crushed all opposition.

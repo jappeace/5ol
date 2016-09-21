@@ -3,7 +3,7 @@
 use std::thread;
 use std::time;
 use std::sync::{Arc, RwLock, Mutex};
-use state_machine::StateEvent;
+use state::state_machine::StateEvent;
 use time::Duration;
 
 pub struct Updater{

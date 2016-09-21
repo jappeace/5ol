@@ -21,17 +21,17 @@
 use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget};
 use conrod;
 
-use state_machine::{State, StateChange};
-use conquest_state::ConquestState;
-use stellar_bodies::*;
+use state::state_machine::{State, StateChange};
+use state::conquest::ConquestState;
+use model::*;
 
-pub struct PlanetState<'a>{
+pub struct PlanetState{
     ids:Ids,
-    subject:&'a StellarBody,
+    subject: BodyAdress,
     go_back_to:Option<Box<State>>,
 }
-impl<'a> PlanetState<'a>{
-    pub fn new(generator: conrod::widget::id::Generator, subject:&'a StellarBody)->PlanetState<'a>{
+impl PlanetState{
+    pub fn new(generator: conrod::widget::id::Generator, subject:BodyAdress)->PlanetState{
         PlanetState{
             ids:Ids::new(generator),
             subject:subject,
@@ -39,17 +39,17 @@ impl<'a> PlanetState<'a>{
         }
     }
 }
-impl<'a> State for PlanetState<'a>{
+impl State for PlanetState{
     fn enter(&mut self, previous_state:Box<State>) -> StateChange{
         self.go_back_to = Some(previous_state);
         None
     }
-    fn update(&mut self, ui:&mut conrod::UiCell) -> StateChange{
+    fn update(&mut self, ui:&mut conrod::UiCell, model:&mut GameModel) -> StateChange{
         // Construct our main `Canvas` tree.
         widget::Canvas::new().color(color::BLACK).set(self.ids.canvas_root, ui);
-        widget::Text::new(self.subject.name)
+        widget::Text::new(model.get_body(&self.subject).name)
             .color(color::LIGHT_RED)
-            .top_of(self.ids.canvas_root)
+            .middle_of(self.ids.canvas_root)
             .align_text_left()
             .line_spacing(10.0)
             .set(self.ids.text_intro, ui);

@@ -14,8 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see <http://www.gnu.org/licenses/>.
 
-
-// this file describes stellar objects
+// this file describes the game model, ie key datastructures for the game play.
+// for now we jam just everything in here since model description is pretty
+// staight forward, probably gonna do seperate files if this gets bigger than
+// 500+ lines or so
 pub type Au = f64;
 
 use time::Duration;
@@ -62,6 +64,11 @@ impl StellarBody{
         }
     }
 }
+pub struct BodyAdress{
+    pub system_id:usize,
+    pub planet_id:usize,
+    // TODO: moon id? maybe as an option?
+}
 pub struct System{
     pub used_space:Disk,
     pub bodies:Vec<StellarBody>,
@@ -86,3 +93,26 @@ impl System{
     }
 }
 
+// top level datastructure, all other models should be attached to this.
+// having this allows us to transfer ownership of the current game progress
+// between "states".
+pub struct GameModel{
+    pub galaxy:Vec<System>,
+    pub player:Player,
+}
+impl GameModel{
+    pub fn new(systems:Vec<System>) -> GameModel{
+        GameModel{
+            galaxy:systems,
+            player:Player{
+                money:0
+            }
+        } 
+    }
+    pub fn get_body(&self, address:&BodyAdress) -> &StellarBody{
+        &self.galaxy[address.system_id].bodies[address.planet_id]
+    }
+}
+pub struct Player{
+    money:i32
+}

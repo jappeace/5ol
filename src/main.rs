@@ -27,17 +27,22 @@ extern crate petgraph;
 use piston_window::{EventLoop, OpenGL, PistonWindow, WindowSettings};
 use piston_window::Event::*;
 
-mod state_machine;
-mod begin_state;
-mod conquest_state;
+mod state{
+    pub mod state_machine;
+    pub mod begin;
+    pub mod conquest;
+    pub mod planet;
+}
 mod geometry;
-mod stellar_bodies;
+mod model;
 mod camera;
 mod update_thread;
-mod planet_state;
 
-use state_machine::StateMachine;
-use begin_state::BeginState;
+use state::state_machine::StateMachine;
+use state::begin::BeginState;
+use model::*;
+use geometry::center;
+use time::Duration;
 const assetspath: &'static str = "assets";
 const font: &'static str = "fonts/NotoSans/NotoSans-Regular.ttf";
 
@@ -76,13 +81,25 @@ fn main() {
     // The image map describing each of our widget->image mappings (in our case, none).
     let image_map = conrod::image::Map::new();
 
-    let mut state_machine = StateMachine::new();
+    let mut state_machine = StateMachine::new(GameModel::new(vec![
+        System::new(
+            center,
+            vec![
+                StellarBody::create_single_star("sun"),
+                StellarBody::new("mercury", Duration::days(88), 0.387098),
+                StellarBody::new("venus", Duration::days(225),0.723332),
+                StellarBody::new("earth",Duration::days(365),1.0),
+                StellarBody::new("mars",Duration::days(780),1.523679),
+            ]
+        )
+    ]
+    ));
     state_machine.change_state(Box::new(BeginState::new(ui.widget_id_generator())));
 
     let mut should_update = true;
     while let Some(event) = window.next() {
         {
-            use state_machine::StateEvent::*;
+            use state::state_machine::StateEvent::*;
             match state_machine.poll_events(){
                 Idle => {}
                 WantsUpdate => should_update = true,
