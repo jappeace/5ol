@@ -23,7 +23,9 @@ pub type Au = f64;
 use time::Duration;
 use geometry::*;
 use petgraph::graph::NodeIndex;
+use std::usize;
 
+#[derive(Clone)]
 pub struct StellarBody{
     pub name:&'static str,
     pub orbit_time:Duration,
@@ -34,6 +36,7 @@ pub struct StellarBody{
     // the initial approach just generate a new one forever, but I think that
     // is just a memory leak.
     pub view_id:Option<NodeIndex<u32>>,
+    pub address:BodyAddress
 }
 impl StellarBody{
     pub fn new(name:&'static str, orbit:Duration, distance:Au) -> StellarBody{
@@ -41,7 +44,8 @@ impl StellarBody{
             name:name,
             orbit_time: orbit,
             distance:distance,
-            view_id:None
+            view_id:None,
+            address:unkown_address
         }
     }
     pub fn create_single_star(name:&'static str)->StellarBody{
@@ -64,11 +68,15 @@ impl StellarBody{
         }
     }
 }
-pub struct BodyAdress{
+#[derive(Clone,Copy)]
+pub struct BodyAddress{
     pub system_id:usize,
     pub planet_id:usize,
     // TODO: moon id? maybe as an option?
 }
+const unkown_address:BodyAddress = BodyAddress{system_id:usize::MAX,planet_id:usize::MAX};
+
+#[derive(Clone)]
 pub struct System{
     pub used_space:Disk,
     pub bodies:Vec<StellarBody>,
@@ -96,23 +104,43 @@ impl System{
 // top level datastructure, all other models should be attached to this.
 // having this allows us to transfer ownership of the current game progress
 // between "states".
+#[derive(Clone)]
 pub struct GameModel{
     pub galaxy:Vec<System>,
     pub player:Player,
+    pub time:Duration
 }
 impl GameModel{
     pub fn new(systems:Vec<System>) -> GameModel{
+        let addressed = (0..).zip(systems).map(|(s_i,sys)|{
+            let mut newsys = sys.clone();
+            let newbodies = (0..).zip(sys.bodies).map(|(p_i, body)|{
+                let mut newbody = body.clone();
+                newbody.address = BodyAddress{system_id:s_i, planet_id:p_i};
+                newbody
+            }).collect();
+            newsys.bodies = newbodies;
+            newsys
+        }).collect();
         GameModel{
-            galaxy:systems,
+            galaxy:addressed,
             player:Player{
                 money:0
-            }
+            },
+            time:Duration::zero()
         } 
     }
-    pub fn get_body(&self, address:&BodyAdress) -> &StellarBody{
+    pub fn get_body(&self, address:&BodyAddress) -> &StellarBody{
         &self.galaxy[address.system_id].bodies[address.planet_id]
     }
+    pub fn set_body(&mut self, address:&BodyAddress, change_to:StellarBody){
+        self.galaxy[address.system_id].bodies[address.planet_id] = change_to;
+    }
 }
+
+use std::sync::{Arc, RwLock};
+pub type World = Arc<RwLock<GameModel>>;
+#[derive(Clone)]
 pub struct Player{
     money:i32
 }

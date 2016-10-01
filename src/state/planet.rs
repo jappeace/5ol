@@ -24,30 +24,37 @@ use conrod;
 use state::state_machine::{State, StateChange};
 use state::conquest::ConquestState;
 use model::*;
+use camera::Camera;
 
 pub struct PlanetState{
     ids:Ids,
-    subject: BodyAdress,
-    go_back_to:Option<Box<State>>,
+    subject: BodyAddress,
+    previous_state:Option<Box<State>>,
+    game_world:World
 }
 impl PlanetState{
-    pub fn new(generator: conrod::widget::id::Generator, subject:BodyAdress)->PlanetState{
+    pub fn new(
+        generator: conrod::widget::id::Generator,
+        subject:BodyAddress,
+        game_world:World
+    )->PlanetState{
         PlanetState{
             ids:Ids::new(generator),
             subject:subject,
-            go_back_to:None
+            previous_state:None,
+            game_world:game_world
         }
     }
 }
 impl State for PlanetState{
-    fn enter(&mut self, previous_state:Box<State>) -> StateChange{
-        self.go_back_to = Some(previous_state);
+    fn enter(&mut self, previous:Box<State>) -> StateChange{
+        self.previous_state = Some(previous);
         None
     }
-    fn update(&mut self, ui:&mut conrod::UiCell, model:&mut GameModel) -> StateChange{
+    fn update(&mut self, ui:&mut conrod::UiCell) -> StateChange{
         // Construct our main `Canvas` tree.
         widget::Canvas::new().color(color::BLACK).set(self.ids.canvas_root, ui);
-        widget::Text::new(model.get_body(&self.subject).name)
+        widget::Text::new(self.game_world.read().unwrap().get_body(&self.subject).name)
             .color(color::LIGHT_RED)
             .middle_of(self.ids.canvas_root)
             .align_text_left()
@@ -59,7 +66,10 @@ impl State for PlanetState{
             .color(color::DARK_CHARCOAL)
             .label_color(color::GRAY)
             .set(self.ids.button_begin, ui){
-                return Some(self.go_back_to.expect("nothing to go back to"))
+                let mut previous_state:Option<Box<State>> = None;
+                use std::mem::swap;
+                swap(&mut previous_state, &mut self.previous_state);
+                return previous_state;
             }
         None
     }

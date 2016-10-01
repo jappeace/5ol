@@ -24,60 +24,66 @@ use time::Duration;
 use geometry::*;
 use model::*;
 use camera::Camera;
-use update_thread::Updater;
+use async::pulser::Pulser;
+use async::updater::{Updater, Change};
+use async::thread_status::Status;
+
 pub struct ConquestState{
     ids:Ids,
     camera:Camera,
     updater:Updater,
+    pulser:Pulser,
 }
 impl State for ConquestState{
     fn enter(&mut self, _:Box<State>) -> StateChange{
         self.updater.start();
+        self.pulser.start();
         None
     }
     fn poll_event(&self) -> StateEvent{
-        self.updater.get_event()
+        self.pulser.get_event()
     }
-    fn update(&mut self, ui:&mut conrod::UiCell, model:&mut GameModel) ->  StateChange{
+    fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
         use conrod::{color, widget, Colorable, Widget, Positionable, Labelable, Sizeable};
         use conrod::widget::Button;
+        let model = self.updater.game_model.read().expect("no model").clone();
         let canvas = widget::Canvas::new();
         canvas
             .color(color::BLUE)
             .crop_kids()
             .set(self.ids.canvas_root, ui) ;
         let dimens = ui.window_dim();
-        let time = *self.updater.game_time.read().expect("there is no time");
+        let time = model.time;
         println!("update {:?}, {}", time, time.num_weeks());
         let projection = self.camera.create_projection(&dimens);
-        let visible = model.galaxy.iter_mut()
+        let visible = model.galaxy.iter()
             .filter(|x| projection.is_visible(&x.used_space))
-            .flat_map(|x| &mut x.bodies);
+            .flat_map(|x| &x.bodies);
 
-        let generator = ui.widget_id_generator();
         use state::planet::PlanetState;
         for body in visible{
             let view_id = match body.view_id{
                 None => {
-                    let newid = generator.next();
-                    body.view_id = Some(newid);
+                    let newid = ui.widget_id_generator().next();
+                    self.updater.change_queue.send(Change::BodyViewID(body.address, Some(newid)));
                     newid
                 }
                 Some(x) => x
             };
             let position = projection.world_to_screen(&body.calc_position(&time));
             for _ in Button::new().w_h(10.0,10.0).x(position.x).y(position.y).set(view_id, ui){
-                return Some(Box::new(PlanetState::new(generator, BodyAdress{system_id:3,planet_id:3})));
+                return Some(Box::new(PlanetState::new(
+                    ui.widget_id_generator(),
+                    BodyAddress{system_id:3,planet_id:3},
+                    self.updater.game_model.clone()
+                )));
             }
         }
 
-        let ispaused = self.updater.controll.read().expect("accesing paused").is_paused;
-        let pausedlabel = {
-            if ispaused{
-                ">"
-            }else{
-                "❚❚"
-            }
+        
+        let pausedlabel = match self.updater.controll.get_status(){
+            Status::Paused => ">",
+            _ => "❚❚"
         };
         for _ in widget::Button::new()
             .w_h(30.0,30.0)
@@ -86,7 +92,7 @@ impl State for ConquestState{
             .color(color::DARK_CHARCOAL)
             .label_color(color::GRAY)
             .set(self.ids.button_pause, ui){
-                self.updater.toggle_pause();
+                self.updater.controll.toggle_pause();
         }
 
         let mut previous = self.ids.button_pause;
@@ -104,7 +110,7 @@ impl State for ConquestState{
                 .color(color::DARK_CHARCOAL)
                 .label_color(color::GRAY)
                 .set(id, ui){
-                    self.updater.controll.write().unwrap().pace_ms = speed;
+                    self.updater.controll.set_pace(speed);
                 }
             previous = id;
         }
@@ -151,7 +157,7 @@ impl State for ConquestState{
                 S => self.camera.position.y += 0.1,
                 D => self.camera.position.x -= 0.1,
                 A => self.camera.position.x += 0.1,
-                Space => self.updater.toggle_pause(),
+                Space => self.updater.controll.toggle_pause(),
                 _ => {}
             },
             _ => {}
@@ -160,16 +166,34 @@ impl State for ConquestState{
         }
     fn exit(&mut self){
         // kill the threads
-        self.updater.controll.write().unwrap().is_updating_timing = false;
+        self.updater.controll.stop();
+        self.pulser.controll.stop();
     }
 }
 
 impl ConquestState{
-    pub fn new(generator: conrod::widget::id::Generator)->ConquestState{
+    pub fn new_game(generator: conrod::widget::id::Generator) -> ConquestState{
+        use std::sync::{Arc, RwLock};
+        ConquestState::new(generator, Camera::new(center,2.0,2.0), Arc::new(RwLock::new(GameModel::new(vec![
+            System::new(
+                center,
+                vec![
+                    StellarBody::create_single_star("sun"),
+                    StellarBody::new("mercury", Duration::days(88), 0.387098),
+                    StellarBody::new("venus", Duration::days(225),0.723332),
+                    StellarBody::new("earth",Duration::days(365),1.0),
+                    StellarBody::new("mars",Duration::days(780),1.523679),
+                ]
+            )
+        ]
+        ))))
+    }
+    pub fn new(generator: conrod::widget::id::Generator, start_cam:Camera, start_model:World)->ConquestState{
         ConquestState{
             ids:Ids::new(generator),
-            camera:Camera::new(center,2.0,2.0),
-            updater:Updater::new(StateEvent::Idle, Duration::zero())
+            camera:start_cam,
+            updater:Updater::new(start_model, Duration::days),
+            pulser:Pulser::new(StateEvent::Idle)
         }
     }
 }

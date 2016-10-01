@@ -36,7 +36,11 @@ mod state{
 mod geometry;
 mod model;
 mod camera;
-mod update_thread;
+mod async{
+    pub mod thread_status;
+    pub mod updater;
+    pub mod pulser;
+}
 
 use state::state_machine::StateMachine;
 use state::begin::BeginState;
@@ -81,19 +85,7 @@ fn main() {
     // The image map describing each of our widget->image mappings (in our case, none).
     let image_map = conrod::image::Map::new();
 
-    let mut state_machine = StateMachine::new(GameModel::new(vec![
-        System::new(
-            center,
-            vec![
-                StellarBody::create_single_star("sun"),
-                StellarBody::new("mercury", Duration::days(88), 0.387098),
-                StellarBody::new("venus", Duration::days(225),0.723332),
-                StellarBody::new("earth",Duration::days(365),1.0),
-                StellarBody::new("mars",Duration::days(780),1.523679),
-            ]
-        )
-    ]
-    ));
+    let mut state_machine = StateMachine::new();
     state_machine.change_state(Box::new(BeginState::new(ui.widget_id_generator())));
 
     let mut should_update = true;

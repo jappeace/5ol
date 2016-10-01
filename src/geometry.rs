@@ -85,6 +85,7 @@ impl Neg for Position{
 
 pub type Line = [Position;2];
 
+#[derive(Clone)]
 pub struct Disk{
     pub position:Position,
     pub radius:f64

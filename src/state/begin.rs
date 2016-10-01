@@ -23,7 +23,7 @@ use conrod;
 
 use state::state_machine::{State, StateChange};
 use state::conquest::ConquestState;
-use model::GameModel;
+use model::World;
 
 pub struct BeginState{
     ids:Ids
@@ -34,7 +34,7 @@ impl BeginState{
     }
 }
 impl State for BeginState {
-    fn update(&mut self, ui:&mut conrod::UiCell, model:&mut GameModel) -> StateChange{
+    fn update(&mut self, ui:&mut conrod::UiCell) -> StateChange{
 
         const INTRO_TEXT: &'static str = "After a long power struggle over now several generations, 
     you Kim Ill Sung III has finally crushed all opposition.
@@ -55,7 +55,7 @@ impl State for BeginState {
             .color(color::DARK_CHARCOAL)
             .label_color(color::GRAY)
             .set(self.ids.button_begin, ui){
-                return Some(Box::new(ConquestState::new(ui.widget_id_generator())))
+                return Some(Box::new(ConquestState::new_game(ui.widget_id_generator())))
             }
         None
     }
