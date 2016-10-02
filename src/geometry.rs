@@ -126,7 +126,7 @@ impl Rectangle{
         let two = 2.0;
         Position{
             x:(self.width()/two) + tl.x,
-            y:(self.height()/two) + tl.y
+            y: tl.y - (self.height()/two) // projection reasons
         }
     }
     pub fn tl(&self) -> Position{

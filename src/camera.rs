@@ -38,15 +38,16 @@ impl Camera{
         Camera{position:position, width:width, height:height}
     }
     pub fn create_projection<'a>(&self, screen_size:&'a Dimensions) -> Projection<'a>{
+        let two = 2.0;
         Projection{
             view_port:Rectangle{
                 one: Position{
-                    x:self.position.x-self.width/2.0,
-                    y:self.position.y-self.height/2.0,
+                    x:self.position.x-self.width/two,
+                    y:self.position.y-self.height/two,
                 },
                 two: Position{
-                    x:self.position.x+self.width/2.0,
-                    y:self.position.y+self.height/2.0,
+                    x:self.position.x+self.width/two,
+                    y:self.position.y+self.height/two,
                 }
             },
             screen_size:screen_size
@@ -68,9 +69,11 @@ impl<'a> Projection<'a>{
     pub fn world_to_screen(&self, position:&Position)->Position{
         let factor = Position::new(self.screen_size[0], self.screen_size[1]) /
             Position::new(self.view_port.width(), self.view_port.height());
+        println!("center {}", self.view_port.center());
         (position.clone() + self.view_port.center()) * factor
     }
     pub fn is_visible(&self, disk:&Disk) -> bool{
+        return true;
         let (tl, tr, bl, br) = self.view_port.corners();
         self.view_port.contains(&disk.position) ||
             disk.contains([tl, tr]) ||

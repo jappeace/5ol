@@ -72,6 +72,7 @@ impl State for ConquestState{
                 Some(x) => x
             };
             let position = projection.world_to_screen(&body.calc_position(&time));
+            println!("{} located {}", body.name, position);
             for _ in Button::new().w_h(10.0,10.0).x(position.x).y(position.y).set(view_id, ui){
                 return Some(Box::new(PlanetState::new(
                     ui.widget_id_generator(),
@@ -175,7 +176,7 @@ impl State for ConquestState{
 impl ConquestState{
     pub fn new_game(generator: conrod::widget::id::Generator) -> ConquestState{
         use std::sync::{Arc, RwLock};
-        ConquestState::new(generator, Camera::new(center,16.0,10.0), Arc::new(RwLock::new(GameModel::new(vec![
+        ConquestState::new(generator, Camera::new(center,2.0,2.0), Arc::new(RwLock::new(GameModel::new(vec![
             System::new(
                 center,
                 vec![
