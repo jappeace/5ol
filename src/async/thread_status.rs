@@ -78,7 +78,8 @@ fn with_default_controlls<F, T>(controll:Arc<RwLock<ThreadStatus>>, threadlogic:
     loop{
         let pace = controll.read().expect(no_poisen).pace_ms;
         let pace_duration = time::Duration::from_millis(pace);
-        match controll.read().expect(no_poisen).status {
+        let status = controll.read().expect(no_poisen).status;
+        match status {
             Status::Aborted => break,
             Status::Paused =>{
                 sleep();
