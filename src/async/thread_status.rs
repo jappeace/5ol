@@ -76,7 +76,8 @@ fn with_default_controlls<F, T>(controll:Arc<RwLock<ThreadStatus>>, threadlogic:
     where F: Fn() -> T, F: Send + 'static, T: Send + 'static {
     let no_poisen = "no poisen";
     loop{
-        let pace = time::Duration::from_millis(controll.read().expect(no_poisen).pace_ms);
+        let pace = controll.read().expect(no_poisen).pace_ms;
+        let pace_duration = time::Duration::from_millis(pace);
         match controll.read().expect(no_poisen).status {
             Status::Aborted => break,
             Status::Paused =>{
@@ -85,7 +86,9 @@ fn with_default_controlls<F, T>(controll:Arc<RwLock<ThreadStatus>>, threadlogic:
             }
             Status::Executing => {
                 threadlogic();
-                thread::sleep(pace);
+                if pace > 0{
+                    thread::sleep(pace_duration);
+                }
             }
         }
     }

@@ -57,6 +57,8 @@ impl Updater{
     }
     pub fn stop(&mut self){
         self.controll.stop();
-        self.model_writer.enqueue(Change::StopThread);
+        println!("stopped controll");
+        self.model_writer.stop();
+        println!("stopped updater")
     }
 }

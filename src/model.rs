@@ -68,7 +68,7 @@ impl StellarBody{
         }
     }
 }
-#[derive(Clone,Copy)]
+#[derive(Clone,Copy,Debug)]
 pub struct BodyAddress{
     pub system_id:usize,
     pub planet_id:usize,

@@ -69,7 +69,6 @@ impl<'a> Projection<'a>{
     pub fn world_to_screen(&self, position:&Position)->Position{
         let factor = Position::new(self.screen_size[0], self.screen_size[1]) /
             Position::new(self.view_port.width(), self.view_port.height());
-        println!("center {}", self.view_port.center());
         (position.clone() + self.view_port.center()) * factor
     }
     pub fn is_visible(&self, disk:&Disk) -> bool{

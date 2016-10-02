@@ -72,7 +72,6 @@ impl State for ConquestState{
                 Some(x) => x
             };
             let position = projection.world_to_screen(&body.calc_position(&time));
-            println!("{} located {}", body.name, position);
             for _ in Button::new().w_h(10.0,10.0).x(position.x).y(position.y).set(view_id, ui){
                 return Some(Box::new(PlanetState::new(
                     ui.widget_id_generator(),
@@ -168,6 +167,7 @@ impl State for ConquestState{
         }
     fn exit(&mut self){
         // kill the threads
+        println!("exiting conquest state");
         self.updater.stop();
         self.pulser.controll.stop();
     }

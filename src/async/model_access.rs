@@ -20,7 +20,7 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 
 #[derive(Clone)]
 pub struct ModelAccess{
-    controll:ThreadControll, // private since controll should go trough Change messages
+    controll:ThreadControll,
     pub game_model:Arc<RwLock<GameModel>>,
     pub change_queue:Sender<Change>
 }
@@ -43,25 +43,31 @@ impl ModelAccess{
         self.controll.set_status(Status::Executing);
 
         let game_model = self.game_model.clone();
-        let controll = self.controll.clone();
         let (cq,user_changes) = channel();
         self.change_queue = cq;
 
         self.controll.execute_async(move ||{
-            let mut cont = controll.clone();
-            println!("running");
             match user_changes.recv(){
-                Ok(Change::StopThread) => {
-                    cont.stop();
-                    println!("stopping");
-                },
                 Ok(message) => ModelAccess::write(game_model.clone(), &message),
                 _ => {
-                    cont.stop();
-                    println!("stopping")
+                    // it means that all senders are de-allocated
+                    // therefore this thread became useless and the easiest way
+                    // of dealing with this is crashing it.
+                    panic!("otherside hung up");
                 }
             }
         })
+    }
+    pub fn stop(&mut self){
+        let sender = self.change_queue.clone();
+        // prevent a deadlock by flushing the thread with messages
+        thread::spawn(move ||{
+            while let Ok(_) = sender.send(Change::Nothing) {
+                thread::yield_now();
+            }
+        });
+        self.controll.stop();
+        println!("stopped access");
     }
     pub fn enqueue(&self, change:Change){
         self.change_queue.send(change);
@@ -77,15 +83,16 @@ impl ModelAccess{
                 game_model.write().expect("it").set_body(&address, body);
             }       
             &Change::Time(to) => game_model.write().expect("it").time = to,
-            _ => println!("unhandled")
+            &Change::Nothing => {}
         }
     }
 }
 
 use petgraph::graph::NodeIndex;
 use model::BodyAddress;
+#[derive(Debug)]
 pub enum Change{
     BodyViewID(BodyAddress, Option<NodeIndex<u32>>),
     Time(Duration),
-    StopThread
+    Nothing // usefull for dealing with controll changes (ie thread abort)
 }
