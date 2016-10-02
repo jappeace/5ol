@@ -18,19 +18,11 @@ use model::GameModel;
 use async::thread_status::{ThreadControll, Status};
 use std::sync::mpsc::{channel, Sender, Receiver};
 
+#[derive(Clone)]
 pub struct ModelAccess{
     controll:ThreadControll, // private since controll should go trough Change messages
     pub game_model:Arc<RwLock<GameModel>>,
     pub change_queue:Sender<Change>
-}
-impl Clone for ModelAccess{
-    fn clone(&self) -> Self{
-        ModelAccess{
-            controll:self.controll.clone(),
-            game_model:self.game_model.clone(),
-            change_queue:self.change_queue.clone()
-        }
-    }
 }
 impl ModelAccess{
     pub fn new(start_model:Arc<RwLock<GameModel>>) -> ModelAccess{

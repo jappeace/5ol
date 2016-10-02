@@ -31,13 +31,9 @@ impl ThreadStatus{
         }
     }
 }
+#[derive(Clone)]
 pub struct ThreadControll{
     pub status:Arc<RwLock<ThreadStatus>>,
-}
-impl Clone for ThreadControll{
-    fn clone(&self) -> Self{
-        ThreadControll{status:self.status.clone()}
-    }
 }
 impl ThreadControll{
     pub fn new()->ThreadControll{
