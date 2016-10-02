@@ -37,9 +37,9 @@ impl Updater{
         self.model_writer.read_model()
     }
     pub fn start(&mut self) {
+        self.model_writer.start();
         let model = self.model_writer.clone();
         let granuality = self.granuality.clone();
-        self.model_writer.start();
 
         self.controll.execute_async(move ||{
             Updater::update_nature(model.clone(), granuality.clone());
