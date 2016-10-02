@@ -11,7 +11,7 @@ fn sleep(){
     thread::sleep(one_ms); 
 }
 
-#[derive(Clone,Copy)]
+#[derive(Clone,Copy, PartialEq)]
 pub enum Status{
     Aborted,
     Paused,
@@ -31,6 +31,7 @@ impl ThreadStatus{
         }
     }
 }
+#[derive(Clone)]
 pub struct ThreadControll{
     pub status:Arc<RwLock<ThreadStatus>>,
 }

@@ -38,7 +38,8 @@ mod model;
 mod camera;
 mod async{
     pub mod thread_status;
-    pub mod updater;
+    pub mod logic_updater;
+    pub mod model_access;
     pub mod pulser;
 }
 

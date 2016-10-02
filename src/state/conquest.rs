@@ -25,7 +25,8 @@ use geometry::*;
 use model::*;
 use camera::Camera;
 use async::pulser::Pulser;
-use async::updater::{Updater, Change};
+use async::logic_updater::Updater;
+use async::model_access::Change;
 use async::thread_status::Status;
 
 pub struct ConquestState{
@@ -46,7 +47,7 @@ impl State for ConquestState{
     fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
         use conrod::{color, widget, Colorable, Widget, Positionable, Labelable, Sizeable};
         use conrod::widget::Button;
-        let model = self.updater.game_model.read().expect("no model").clone();
+        let model = self.updater.read_model();
         let canvas = widget::Canvas::new();
         canvas
             .color(color::BLUE)
@@ -65,7 +66,7 @@ impl State for ConquestState{
             let view_id = match body.view_id{
                 None => {
                     let newid = ui.widget_id_generator().next();
-                    self.updater.change_queue.send(Change::BodyViewID(body.address, Some(newid)));
+                    self.updater.enqueue(Change::BodyViewID(body.address, Some(newid)));
                     newid
                 }
                 Some(x) => x
@@ -74,8 +75,8 @@ impl State for ConquestState{
             for _ in Button::new().w_h(10.0,10.0).x(position.x).y(position.y).set(view_id, ui){
                 return Some(Box::new(PlanetState::new(
                     ui.widget_id_generator(),
-                    BodyAddress{system_id:3,planet_id:3},
-                    self.updater.game_model.clone()
+                    body.address,
+                    self.updater.model_access()
                 )));
             }
         }
@@ -166,7 +167,7 @@ impl State for ConquestState{
         }
     fn exit(&mut self){
         // kill the threads
-        self.updater.controll.stop();
+        self.updater.stop();
         self.pulser.controll.stop();
     }
 }
@@ -174,7 +175,7 @@ impl State for ConquestState{
 impl ConquestState{
     pub fn new_game(generator: conrod::widget::id::Generator) -> ConquestState{
         use std::sync::{Arc, RwLock};
-        ConquestState::new(generator, Camera::new(center,2.0,2.0), Arc::new(RwLock::new(GameModel::new(vec![
+        ConquestState::new(generator, Camera::new(center,16.0,10.0), Arc::new(RwLock::new(GameModel::new(vec![
             System::new(
                 center,
                 vec![

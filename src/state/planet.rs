@@ -25,18 +25,19 @@ use state::state_machine::{State, StateChange};
 use state::conquest::ConquestState;
 use model::*;
 use camera::Camera;
+use async::model_access::ModelAccess;
 
 pub struct PlanetState{
     ids:Ids,
     subject: BodyAddress,
     previous_state:Option<Box<State>>,
-    game_world:World
+    game_world:ModelAccess
 }
 impl PlanetState{
     pub fn new(
         generator: conrod::widget::id::Generator,
         subject:BodyAddress,
-        game_world:World
+        game_world:ModelAccess
     )->PlanetState{
         PlanetState{
             ids:Ids::new(generator),
@@ -54,7 +55,7 @@ impl State for PlanetState{
     fn update(&mut self, ui:&mut conrod::UiCell) -> StateChange{
         // Construct our main `Canvas` tree.
         widget::Canvas::new().color(color::BLACK).set(self.ids.canvas_root, ui);
-        widget::Text::new(self.game_world.read().unwrap().get_body(&self.subject).name)
+        widget::Text::new(self.game_world.read_model().get_body(&self.subject).name)
             .color(color::LIGHT_RED)
             .middle_of(self.ids.canvas_root)
             .align_text_left()
