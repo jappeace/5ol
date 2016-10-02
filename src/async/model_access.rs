@@ -47,8 +47,12 @@ impl ModelAccess{
         self.change_queue = cq;
 
         self.controll.execute_async(move ||{
-            match user_changes.recv(){
+            use std::sync::mpsc::TryRecvError;
+            match user_changes.try_recv(){
                 Ok(message) => ModelAccess::write(game_model.clone(), &message),
+                Err(TryRecvError::Empty) => {
+                    thread::yield_now();
+                },
                 _ => {
                     // it means that all senders are de-allocated
                     // therefore this thread became useless and the easiest way
@@ -60,12 +64,6 @@ impl ModelAccess{
     }
     pub fn stop(&mut self){
         let sender = self.change_queue.clone();
-        // prevent a deadlock by flushing the thread with messages
-        thread::spawn(move ||{
-            while let Ok(_) = sender.send(Change::Nothing) {
-                thread::yield_now();
-            }
-        });
         self.controll.stop();
         println!("stopped access");
     }
