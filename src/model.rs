@@ -18,7 +18,13 @@
 // for now we jam just everything in here since model description is pretty
 // staight forward, probably gonna do seperate files if this gets bigger than
 // 500+ lines or so
+
+// austronomical unit, distance from the earth to the sun. Turns out the milky
+// way fits nicely in a signed f64 au if you take earth as 0.0
 pub type Au = f64;
+
+// relative to earth
+pub type Earths = f64;
 
 use time::Duration;
 use geometry::*;
@@ -30,26 +36,32 @@ pub struct StellarBody{
     pub name:&'static str,
     pub orbit_time:Duration,
     pub distance:Au,
+    pub surface_area:Earths,
     // conrod uses an id to keep track of widgets,
     // however since the stellar bodies are generated we need to decide these
     // on the fly, see: http://docs.piston.rs/conrod/conrod/widget/id/type.Id.html
     // the initial approach just generate a new one forever, but I think that
     // is just a memory leak.
     pub view_id:Option<NodeIndex<u32>>,
-    pub address:BodyAddress
+    // if you have the body you can modify it in constant time
+    pub address:BodyAddress,
+    // not colonized, no pop, no need to pay for the memory
+    pub population:Option<Population>
 }
 impl StellarBody{
-    pub fn new(name:&'static str, orbit:Duration, distance:Au) -> StellarBody{
+    pub fn new(name:&'static str, orbit:Duration, distance:Au, surface:Earths) -> StellarBody{
         StellarBody{
             name:name,
             orbit_time: orbit,
             distance:distance,
             view_id:None,
-            address:unkown_address
+            address:unkown_address,
+            population:None,
+            surface_area:surface
         }
     }
     pub fn create_single_star(name:&'static str)->StellarBody{
-        StellarBody::new(name, Duration::zero(), 0.0)
+        StellarBody::new(name, Duration::zero(), 0.0, 0.0)
     }
     pub fn calc_position(&self, since_start_of_simulation:&Duration) -> Position{
         let orbit_time:i64 = self.orbit_time.num_seconds();
@@ -107,7 +119,7 @@ impl System{
 #[derive(Clone)]
 pub struct GameModel{
     pub galaxy:Vec<System>,
-    pub player:Player,
+    pub players:Vec<Player>,
     pub time:Duration
 }
 impl GameModel{
@@ -124,9 +136,10 @@ impl GameModel{
         }).collect();
         GameModel{
             galaxy:addressed,
-            player:Player{
-                money:0
-            },
+            players:vec![Player{
+                money:0,
+                id:0
+            }],
             time:Duration::zero()
         } 
     }
@@ -142,5 +155,38 @@ use std::sync::{Arc, RwLock};
 pub type World = Arc<RwLock<GameModel>>;
 #[derive(Clone)]
 pub struct Player{
-    money:i32
+    pub money:i64,
+    pub id:usize
 }
+
+#[derive(Clone)]
+pub struct Population{
+    pub owner:usize, // playerid
+    pub head_count:i64
+}
+impl Population{
+    pub fn calc_head_increase(&self, carrying_capacity:i64, duration:Duration) -> i64{
+        // lets say we reach carrying capacity in 50 years
+        let cc_fraction = (self.head_count as f64) / (carrying_capacity as f64);
+
+        if cc_fraction > 1.0 {
+            let week = Duration::weeks(1).num_milliseconds() as f64;
+            let death_time = (duration.num_milliseconds() as f64)/week;
+            let deaths_fraction = ((cc_fraction-1.0)*0.1) * death_time;
+            return -(deaths_fraction * (self.head_count as f64)) as i64;
+        }
+        let thirthy_year = Duration::weeks(52*30).num_milliseconds() as f64;
+        let time_fraction = duration.num_milliseconds() as f64 / thirthy_year;
+        let fertile_pop = (self.head_count as f64) * fertile_female_fraction;
+        //TODO: limit growth for small population sizes
+        // ie, figure female count, times amount of babies they get over duration
+        // only neccesary for postive growth
+        (time_fraction * fertile_pop * ((1.0-cc_fraction)*growth_boost)) as i64
+    }
+}
+pub const carrying_capacity_earth:f64 = 10000000000.0;
+const fertile_female_fraction:f64 = 0.5*0.3;
+const growth_boost:f64 = 1.0;
+
+const death_fraction_per_week:f64 = 0.1;
+

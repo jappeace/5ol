@@ -3,20 +3,21 @@
 // all model writes should go trough this structure, each model should have
 // a respective singular writer.
 
-// However keep in mind that this structure only should do simple assignments
-// the computation should already be done in at this point and we use this
-// structure to make writes determinstic, therefore it also provides a snapshot
-// read feature.
+// The main idea behind this is to prevent race conditions and group certain
+// updates together to prevent readers from getting weird states, such as for
+// example a time update should also include a resource tick. So that you never
+// get increased resources without increased time.
+// It also should prevent cheating by doing model checks, such as, "is this
+// change even allowed". Because the clients may have been working on an older
+// state where things still could've worked.
 
 use std::thread;
-use std::time;
-use std::sync::{Arc, RwLock, Mutex};
-use state::state_machine::StateEvent;
+use std::sync::{Arc, RwLock, RwLockWriteGuard};
 use time::Duration;
 
-use model::GameModel;
+use model::{carrying_capacity_earth, GameModel};
 use async::thread_status::{ThreadControll, Status};
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::mpsc::{channel, Sender};
 
 #[derive(Clone)]
 pub struct ModelAccess{
@@ -65,6 +66,7 @@ impl ModelAccess{
             while let Ok(_) = sender.send(Change::Nothing) {
                 thread::yield_now();
             }
+            // otherside hung up, this is what we wanted, this thread can die now
         });
         self.controll.stop();
         println!("stopped access");
@@ -82,8 +84,20 @@ impl ModelAccess{
                 body.view_id = changeto;
                 game_model.write().expect("it").set_body(&address, body);
             }       
-            &Change::Time(to) => game_model.write().expect("it").time = to,
+            &Change::Time(increase) => ModelAccess::resource_tick(game_model.write().expect("it"), increase),
             &Change::Nothing => {}
+        }
+    }
+    fn resource_tick(mut game_model:RwLockWriteGuard<GameModel>, increase:Duration){
+        game_model.time = game_model.time + increase;
+        for body in game_model.galaxy.iter_mut().flat_map(|x| x.bodies.iter_mut().filter(|y| y.population.is_some())){
+            body.population = if let Some(mut population) = body.population.clone(){
+                population.head_count += population.calc_head_increase(
+                    (body.surface_area*carrying_capacity_earth) as i64,
+                    increase
+                );
+                Some(population)
+            }else{None}
         }
     }
 }

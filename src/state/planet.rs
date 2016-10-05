@@ -55,7 +55,12 @@ impl State for PlanetState{
     fn update(&mut self, ui:&mut conrod::UiCell) -> StateChange{
         // Construct our main `Canvas` tree.
         widget::Canvas::new().color(color::BLACK).set(self.ids.canvas_root, ui);
-        widget::Text::new(self.game_world.read_model().get_body(&self.subject).name)
+        let body = self.game_world.read_model().get_body(&self.subject).clone();
+        let population = if let Some(pop) = body.population{
+            pop.head_count
+        }else{0};
+        let text = format!("planet {}, \n population {}", body.name, population);
+        widget::Text::new(&text)
             .color(color::LIGHT_RED)
             .middle_of(self.ids.canvas_root)
             .align_text_left()

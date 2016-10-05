@@ -176,15 +176,20 @@ impl State for ConquestState{
 impl ConquestState{
     pub fn new_game(generator: conrod::widget::id::Generator) -> ConquestState{
         use std::sync::{Arc, RwLock};
+        let mut earth = StellarBody::new("earth",Duration::days(365),1.0,1.0);
+        earth.population = Some(Population{
+            owner:0,
+            head_count:7456000000
+        });
         ConquestState::new(generator, Camera::new(center,2.0,2.0), Arc::new(RwLock::new(GameModel::new(vec![
             System::new(
                 center,
                 vec![
                     StellarBody::create_single_star("sun"),
-                    StellarBody::new("mercury", Duration::days(88), 0.387098),
-                    StellarBody::new("venus", Duration::days(225),0.723332),
-                    StellarBody::new("earth",Duration::days(365),1.0),
-                    StellarBody::new("mars",Duration::days(780),1.523679),
+                    StellarBody::new("mercury", Duration::days(88), 0.387098, 0.147),
+                    StellarBody::new("venus", Duration::days(225),0.723332, 0.902),
+                    earth,
+                    StellarBody::new("mars",Duration::days(780),1.523679, 0.284),
                 ]
             )
         ]

@@ -48,9 +48,8 @@ impl Updater{
     fn update_nature(model_writer:ModelAccess, granuality:Arc<RwLock<fn(i64)->Duration>>){
         // at this point we gave up on channels and let locks into our
         // hearts, it actually made things simpler, believe it or not.
-        let previous = model_writer.game_model.read().expect("poison time").time;
         let mktimefunc = granuality.read().unwrap();
-        model_writer.enqueue(Change::Time(previous + mktimefunc(1)));
+        model_writer.enqueue(Change::Time(mktimefunc(1)));
     }
     pub fn set_granuality(&mut self, to:fn(i64)->Duration){
         *self.granuality.write().expect("writing new granu") = to;
