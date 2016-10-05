@@ -1,15 +1,11 @@
-// This file contains the core update thread, ie make sure time update_natures
+// This file is the logic behind the time controlls.
 
-use std::thread;
-use std::time;
-use std::sync::{Arc, RwLock, Mutex};
-use state::state_machine::StateEvent;
+use std::sync::{Arc, RwLock};
 use time::Duration;
 
 use model::GameModel;
 use async::model_access::{ModelAccess, Change};
 use async::thread_status::{ThreadControll, Status};
-use std::sync::mpsc::{channel, Sender, Receiver};
 
 pub struct Updater{
     pub controll:ThreadControll,
@@ -36,6 +32,7 @@ impl Updater{
             Updater::update_nature(model.clone(), granuality.clone());
         })
     }
+    #[allow(unused_variables)] // need that lock
     fn update_nature(model_writer:ModelAccess, granuality:Arc<RwLock<fn(i64)->Duration>>){
         // obtain read lock to prevent going faster than the writer at speed 0
         let lock = model_writer.read_lock_model();

@@ -2,14 +2,10 @@
 // this is to prevent an issue with conrod which causes 100% usage on the
 // ui thread.
 
-use std::thread;
-use std::time;
-use std::sync::{Arc, RwLock, Mutex};
+use std::sync::{Arc, Mutex};
 use state::state_machine::StateEvent;
-use time::Duration;
 
-use model::GameModel;
-use async::thread_status::{ThreadControll, Status};
+use async::thread_status::ThreadControll;
 
 pub struct Pulser{
     pub event:Arc<Mutex<StateEvent>>,

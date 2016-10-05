@@ -1,8 +1,12 @@
-// This file contains the core update thread, ie make sure time update_times
+// this is a thread abstraction to provide similar controlls for each thread
+// aborted will resund in the thread dying
+// executing will call the thread logic every pace_ms
+// paused will halt execution of thread logic and put itself in a sleep cycle
+// untill a state change
+
 use std::time;
 use std::sync::{Arc, RwLock};
 use std::thread;
-use time::Duration;
 
 fn sleep(){
     let one_ms = time::Duration::from_millis(1);

@@ -19,6 +19,7 @@ use model::{carrying_capacity_earth, GameModel};
 use async::thread_status::{ThreadControll, Status};
 use std::sync::mpsc::{channel, Sender};
 
+
 #[derive(Clone)]
 pub struct ModelAccess{
     controll:ThreadControll,
@@ -30,7 +31,7 @@ impl ModelAccess{
         let mut controll = ThreadControll::new();
         controll.set_status(Status::Aborted);
         controll.set_pace(0);
-        let (cq,cr) = channel();
+        let (cq,_) = channel();
         ModelAccess{
             game_model:start_model,
             controll:controll,
@@ -72,7 +73,10 @@ impl ModelAccess{
         println!("stopped access");
     }
     pub fn enqueue(&self, change:Change){
-        self.change_queue.send(change);
+        if let Ok(_) = self.change_queue.send(change){
+            return;
+        }
+        panic!("sending failed");
     }
     pub fn copy_model(&self) -> GameModel{
         self.read_lock_model().clone()

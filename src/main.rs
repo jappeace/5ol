@@ -45,9 +45,7 @@ mod async{
 
 use state::state_machine::StateMachine;
 use state::begin::BeginState;
-use model::*;
-use geometry::center;
-use time::Duration;
+
 const assetspath: &'static str = "assets";
 const font: &'static str = "fonts/NotoSans/NotoSans-Regular.ttf";
 
@@ -125,4 +123,3 @@ fn main() {
     }
 
 }
-

@@ -22,9 +22,7 @@ use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget
 use conrod;
 
 use state::state_machine::{State, StateChange};
-use state::conquest::ConquestState;
 use model::*;
-use camera::Camera;
 use async::model_access::ModelAccess;
 
 pub struct PlanetState{

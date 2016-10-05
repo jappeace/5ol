@@ -172,7 +172,7 @@ impl Population{
         if cc_fraction > 1.0 {
             let week = Duration::weeks(1).num_milliseconds() as f64;
             let death_time = (duration.num_milliseconds() as f64)/week;
-            let deaths_fraction = ((cc_fraction-1.0)*0.1) * death_time;
+            let deaths_fraction = ((cc_fraction-1.0)*death_fraction_per_week) * death_time;
             return -(deaths_fraction * (self.head_count as f64)) as i64;
         }
         let thirthy_year = Duration::weeks(52*30).num_milliseconds() as f64;

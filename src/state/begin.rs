@@ -23,7 +23,6 @@ use conrod;
 
 use state::state_machine::{State, StateChange};
 use state::conquest::ConquestState;
-use model::World;
 
 pub struct BeginState{
     ids:Ids

@@ -24,6 +24,7 @@ use conrod;
 use conrod::UiCell;
 use piston_window::Input;
 pub type StateChange = Option<Box<State>>;
+#[allow(unused_variables)] // its documentation
 pub trait State {
     // previous states allows new states to go back to the previous state,
     // its really hard to do this otherwise, since the states never own themselves

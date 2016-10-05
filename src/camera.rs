@@ -15,14 +15,12 @@
 // along with this program.If not, see <http://www.gnu.org/licenses/>.
 
 
-// does the world to screen mapping (and also renders
-// the bodies right now, this will probably change when rendering becomes more 
-// complex)
+// does the world to screen mapping, ie determine where a world coordinate
+// (au,au), should be rendered in (px,px)
+
 use geometry::*;
 use model::*;
 use conrod::Dimensions;
-use conrod;
-use time::Duration;
 
 pub struct Camera{
     pub position:Position, // position in world coordinates (AU)
@@ -30,10 +28,6 @@ pub struct Camera{
     height:Au,
 }
 impl Camera{
-    fn world_to_screen(&self, screen_size:&Dimensions, position:Position) -> Position{
-        let factor = Position::new(screen_size[0], screen_size[1]) / Position::new(self.width, self.height);
-        (position + self.position) * factor
-    }
     pub fn new(position:Position, width:Au, height:Au)->Camera{
         Camera{position:position, width:width, height:height}
     }
@@ -53,14 +47,8 @@ impl Camera{
             screen_size:screen_size
         }
     }
-    pub fn update(&self, ui:&mut conrod::UiCell, screen_size:&Dimensions, systems:&mut Vec<System>, time:&Duration) {
-        use conrod::widget::{Button, Circle};
-        use conrod::{Positionable, Widget, Sizeable, Labelable};
-        use conrod::Colorable;
-        // cull the ones outside view, (and ignoring their sub bodies)
-    }
 }
-struct Projection<'a>{
+pub struct Projection<'a>{
     view_port:Rectangle,
     screen_size:&'a Dimensions
 
@@ -72,7 +60,6 @@ impl<'a> Projection<'a>{
         (position.clone() + self.view_port.center()) * factor
     }
     pub fn is_visible(&self, disk:&Disk) -> bool{
-        return true;
         let (tl, tr, bl, br) = self.view_port.corners();
         self.view_port.contains(&disk.position) ||
             disk.contains([tl, tr]) ||
