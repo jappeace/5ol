@@ -55,7 +55,7 @@ impl State for PlanetState{
     fn update(&mut self, ui:&mut conrod::UiCell) -> StateChange{
         // Construct our main `Canvas` tree.
         widget::Canvas::new().color(color::BLACK).set(self.ids.canvas_root, ui);
-        let body = self.game_world.read_model().get_body(&self.subject).clone();
+        let body = self.game_world.read_lock_model().get_body(&self.subject).clone();
         let population = if let Some(pop) = body.population{
             pop.head_count
         }else{0};

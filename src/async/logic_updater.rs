@@ -14,7 +14,7 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 pub struct Updater{
     pub controll:ThreadControll,
     pub granuality:Arc<RwLock<fn(i64)->Duration>>,
-    model_writer:ModelAccess
+    pub model_writer:ModelAccess
 }
 impl Updater{
     pub fn new(start_model:Arc<RwLock<GameModel>>, granuality:fn(i64)->Duration) -> Updater{
@@ -27,15 +27,6 @@ impl Updater{
             model_writer:ModelAccess::new(start_model)
         }
     }
-    pub fn enqueue(&self, change:Change){
-        self.model_writer.enqueue(change);
-    }
-    pub fn model_access(&self) -> ModelAccess{
-        self.model_writer.clone()
-    }
-    pub fn read_model(&self) -> GameModel{
-        self.model_writer.read_model()
-    }
     pub fn start(&mut self) {
         self.model_writer.start();
         let model = self.model_writer.clone();
@@ -46,8 +37,8 @@ impl Updater{
         })
     }
     fn update_nature(model_writer:ModelAccess, granuality:Arc<RwLock<fn(i64)->Duration>>){
-        // at this point we gave up on channels and let locks into our
-        // hearts, it actually made things simpler, believe it or not.
+        // obtain read lock to prevent going faster than the writer at speed 0
+        let lock = model_writer.read_lock_model();
         let mktimefunc = granuality.read().unwrap();
         model_writer.enqueue(Change::Time(mktimefunc(1)));
     }

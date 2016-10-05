@@ -12,7 +12,7 @@
 // state where things still could've worked.
 
 use std::thread;
-use std::sync::{Arc, RwLock, RwLockWriteGuard};
+use std::sync::{Arc, RwLock, RwLockWriteGuard, RwLockReadGuard};
 use time::Duration;
 
 use model::{carrying_capacity_earth, GameModel};
@@ -74,8 +74,15 @@ impl ModelAccess{
     pub fn enqueue(&self, change:Change){
         self.change_queue.send(change);
     }
-    pub fn read_model(&self) -> GameModel{
-        self.game_model.read().expect("exists").clone()
+    pub fn copy_model(&self) -> GameModel{
+        self.read_lock_model().clone()
+    }
+    pub fn read_lock_model(&self) -> RwLockReadGuard<GameModel>{
+        if let Ok(gaurd) = self.game_model.read(){
+            return gaurd;
+        }
+        println!("poisned, try again");
+        self.read_lock_model()
     }
     fn write(game_model:Arc<RwLock<GameModel>>, change:&Change){
         match change{

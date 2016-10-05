@@ -47,7 +47,7 @@ impl State for ConquestState{
     fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
         use conrod::{color, widget, Colorable, Widget, Positionable, Labelable, Sizeable};
         use conrod::widget::Button;
-        let model = self.updater.read_model();
+        let model = self.updater.model_writer.copy_model();
         let canvas = widget::Canvas::new();
         canvas
             .color(color::BLUE)
@@ -66,7 +66,7 @@ impl State for ConquestState{
             let view_id = match body.view_id{
                 None => {
                     let newid = ui.widget_id_generator().next();
-                    self.updater.enqueue(Change::BodyViewID(body.address, Some(newid)));
+                    self.updater.model_writer.enqueue(Change::BodyViewID(body.address, Some(newid)));
                     newid
                 }
                 Some(x) => x
@@ -76,7 +76,7 @@ impl State for ConquestState{
                 return Some(Box::new(PlanetState::new(
                     ui.widget_id_generator(),
                     body.address,
-                    self.updater.model_access()
+                    self.updater.model_writer.clone()
                 )));
             }
         }
