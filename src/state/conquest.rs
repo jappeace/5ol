@@ -228,12 +228,10 @@ impl ConquestState{
                         Duration::days(780),
                         1.523679,
                     ),
-                    StellarBody::new(
-                        BodyClass::GasGiant,
-                        "jupiter",
-                        Duration::days(4333),
- 	                    5.20260
-                    )
+                    StellarBody::new(BodyClass::GasGiant, "jupiter", Duration::days(4333), 5.20260),
+                    StellarBody::new(BodyClass::GasGiant, "saturn", Duration::days(10759), 9.554909),
+                    StellarBody::new(BodyClass::GasGiant, "uranus", Duration::days(30688), 19.2184),
+                    StellarBody::new(BodyClass::GasGiant, "neptune", Duration::days(60182), 30.110387),
                 ]
             )
         ]
