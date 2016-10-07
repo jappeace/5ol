@@ -29,6 +29,7 @@ use async::pulser::Pulser;
 use async::logic_updater::Updater;
 use async::model_access::Change;
 use async::thread_status::Status;
+use std::sync::{Arc, RwLock};
 
 pub struct ConquestState{
     ids:Ids,
@@ -147,6 +148,13 @@ impl State for ConquestState{
                 }
             previous = id;
         }
+
+        widget::Text::new(&format!("money: {}", model.players[0].money))
+            .color(color::LIGHT_RED)
+            .top_left_with_margin_on(self.ids.canvas_root, 10.0)
+            .align_text_left()
+            .line_spacing(10.0)
+            .set(self.ids.text_money, ui);
         None
     }
     fn input(&mut self, input:Input) -> StateChange{
@@ -176,21 +184,50 @@ impl State for ConquestState{
 
 impl ConquestState{
     pub fn new_game(generator: conrod::widget::id::Generator) -> ConquestState{
-        use std::sync::{Arc, RwLock};
-        let mut earth = StellarBody::new("earth",Duration::days(365),1.0,1.0);
-        earth.population = Some(Population{
-            owner:0,
-            head_count:7456000000
-        });
+        let earth = StellarBody::new(
+            BodyClass::Rocky(
+                Habitat::new_inhabited(
+                    1.0,
+                    Population::new(
+                        0,
+                        7456000000
+                    )
+                )
+            ),
+            "earth",
+            Duration::days(365),
+            1.0
+        );
         ConquestState::new(generator, Camera::new(center,2.0,2.0), Arc::new(RwLock::new(GameModel::new(vec![
             System::new(
                 center,
                 vec![
                     StellarBody::create_single_star("sun"),
-                    StellarBody::new("mercury", Duration::days(88), 0.387098, 0.147),
-                    StellarBody::new("venus", Duration::days(225),0.723332, 0.902),
+                    StellarBody::new(
+                        BodyClass::Rocky(
+                            Habitat::new_empty(0.147)
+                        ),
+                        "mercury",
+                        Duration::days(88),
+                        0.387098
+                    ),
+                    StellarBody::new(
+                        BodyClass::Rocky(
+                            Habitat::new_empty(0.902)
+                        ),
+                        "venus",
+                        Duration::days(225),
+                        0.723332
+                    ),
                     earth,
-                    StellarBody::new("mars",Duration::days(780),1.523679, 0.284),
+                    StellarBody::new(
+                        BodyClass::Rocky(
+                            Habitat::new_empty(0.284)
+                        ),
+                        "mars",
+                        Duration::days(780),
+                        1.523679,
+                    ),
                 ]
             )
         ]
@@ -221,5 +258,6 @@ widget_ids! {
         button_granu_minutes,
         button_granu_seconds,
         button_granu_milliseconds,
+        text_money,
     }
 }

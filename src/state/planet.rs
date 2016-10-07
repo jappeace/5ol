@@ -54,10 +54,17 @@ impl State for PlanetState{
         // Construct our main `Canvas` tree.
         widget::Canvas::new().color(color::BLACK).set(self.ids.canvas_root, ui);
         let body = self.game_world.read_lock_model().get_body(&self.subject).clone();
-        let population = if let Some(pop) = body.population{
-            pop.head_count
-        }else{0};
-        let text = format!("planet {}, \n population {}", body.name, population);
+        let bodyinfo = match body.class{
+            BodyClass::Rocky(habitat) =>{
+                let head_count = if let Some(pop) = habitat.population {
+                    pop.head_count  
+                } else {0};
+                ("rocky world", head_count)
+            },
+            BodyClass::GasGiant => ("gass giant", 0),
+            BodyClass::Star => ("star", 0)
+        };
+        let text = format!("{} is a {} \n population {}", body.name, bodyinfo.0, bodyinfo.1);
         widget::Text::new(&text)
             .color(color::LIGHT_RED)
             .middle_of(self.ids.canvas_root)

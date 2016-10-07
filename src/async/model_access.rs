@@ -32,7 +32,7 @@ use std::thread;
 use std::sync::{Arc, RwLock, RwLockWriteGuard, RwLockReadGuard};
 use time::Duration;
 
-use model::{carrying_capacity_earth, GameModel};
+use model::{carrying_capacity_earth, GameModel, BodyClass};
 use async::thread_status::{ThreadControll, Status};
 use std::sync::mpsc::{channel, Sender};
 
@@ -116,16 +116,41 @@ impl ModelAccess{
             &Change::Nothing => {}
         }
     }
-    fn resource_tick(mut game_model:RwLockWriteGuard<GameModel>, increase:Duration){
-        game_model.time = game_model.time + increase;
-        for body in game_model.galaxy.iter_mut().flat_map(|x| x.bodies.iter_mut().filter(|y| y.population.is_some())){
-            body.population = if let Some(mut population) = body.population.clone(){
-                population.head_count += population.calc_head_increase(
-                    (body.surface_area*carrying_capacity_earth) as i64,
-                    increase
-                );
-                Some(population)
-            }else{None}
+    fn resource_tick(mut game_model:RwLockWriteGuard<GameModel>, interval:Duration){
+        game_model.time = game_model.time + interval;
+        let changes:Vec<(BodyAddress,i64,f64)> = game_model.galaxy.iter()
+            .flat_map(|x| x.bodies.iter().filter_map(|cur| {
+                    match &cur.class {
+                        &BodyClass::Rocky(ref h) => {
+                            if let Some(pop) = h.population.clone(){
+                                Some((
+                                    cur.address,
+                                    pop.calc_head_increase(
+                                        (h.size*carrying_capacity_earth) as i64,
+                                        interval
+                                    ),
+                                    pop.calc_tax_over(interval),
+                                ))
+                            }else{
+                                None
+                            }
+                        },
+                        _ =>{ None}
+                    }
+                })
+            ).collect();
+        for change in changes{
+            let mut newbody = game_model.get_body(&change.0).clone();
+            newbody.class = if let BodyClass::Rocky(mut habitat) = newbody.class{
+                habitat.population = habitat.population.map(|x| {
+                    game_model.players[x.owner].money += change.2 as i64;
+                    x.change_headcount(change.1)  
+                });
+                BodyClass::Rocky(habitat)
+            }else{
+                newbody.class
+            };
+            game_model.set_body(&change.0, newbody);
         }
     }
 }

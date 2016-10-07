@@ -33,11 +33,17 @@ use petgraph::graph::NodeIndex;
 use std::usize;
 
 #[derive(Clone)]
+pub enum BodyClass{
+    Rocky(Habitat),
+    GasGiant,
+    Star,
+}
+#[derive(Clone)]
 pub struct StellarBody{
+    pub class:BodyClass,
     pub name:&'static str,
     pub orbit_time:Duration,
     pub distance:Au,
-    pub surface_area:Earths,
     // conrod uses an id to keep track of widgets,
     // however since the stellar bodies are generated we need to decide these
     // on the fly, see: http://docs.piston.rs/conrod/conrod/widget/id/type.Id.html
@@ -46,23 +52,20 @@ pub struct StellarBody{
     pub view_id:Option<NodeIndex<u32>>,
     // if you have the body you can modify it in constant time
     pub address:BodyAddress,
-    // not colonized, no pop, no need to pay for the memory
-    pub population:Option<Population>
 }
 impl StellarBody{
-    pub fn new(name:&'static str, orbit:Duration, distance:Au, surface:Earths) -> StellarBody{
+    pub fn new(class:BodyClass, name:&'static str, orbit:Duration, distance:Au) -> StellarBody{
         StellarBody{
+            class:class,
             name:name,
             orbit_time: orbit,
             distance:distance,
             view_id:None,
             address:unkown_address,
-            population:None,
-            surface_area:surface
         }
     }
     pub fn create_single_star(name:&'static str)->StellarBody{
-        StellarBody::new(name, Duration::zero(), 0.0, 0.0)
+        StellarBody::new(BodyClass::Star, name, Duration::zero(), 0.0)
     }
     pub fn calc_position(&self, since_start_of_simulation:&Duration) -> Position{
         let orbit_time:i64 = self.orbit_time.num_seconds();
@@ -88,6 +91,26 @@ pub struct BodyAddress{
     // TODO: moon id? maybe as an option?
 }
 const unkown_address:BodyAddress = BodyAddress{system_id:usize::MAX,planet_id:usize::MAX};
+
+#[derive(Clone)]
+pub struct Habitat{
+    pub size:Earths,
+    // not colonized, no pop
+    pub population:Option<Population>
+}
+impl Habitat{
+    pub fn new_empty(size:Earths)->Habitat{
+        Habitat{
+            population:None,
+            size:size
+        }
+    }
+    pub fn new_inhabited(surface:Earths, population:Population)->Habitat{
+        let mut result = Habitat::new_empty(surface);
+        result.population = Some(population);
+        result
+    }
+}
 
 #[derive(Clone)]
 pub struct System{
@@ -163,9 +186,25 @@ pub struct Player{
 #[derive(Clone)]
 pub struct Population{
     pub owner:usize, // playerid
-    pub head_count:i64
+    pub head_count:i64,
+    pub tax:f64 // annual tax pp
 }
 impl Population{
+    pub fn new(owner:usize,head_count:i64)->Population{
+        Population{
+            owner:owner,
+            head_count:head_count,
+            tax:0.1,
+        } 
+    }
+    pub fn change_headcount(mut self, by:i64) -> Self{
+        self.head_count += by;
+        self
+    }
+    pub fn calc_tax_over(&self, duration:Duration) -> f64{
+        let fraction = duration.num_milliseconds() as f64 / Duration::days(1).num_milliseconds() as f64;
+        self.tax * (self.head_count as f64) * fraction
+    }
     pub fn calc_head_increase(&self, carrying_capacity:i64, duration:Duration) -> i64{
         // lets say we reach carrying capacity in 50 years
         let cc_fraction = (self.head_count as f64) / (carrying_capacity as f64);
@@ -190,4 +229,3 @@ const fertile_female_fraction:f64 = 0.5*0.3;
 const growth_boost:f64 = 1.0;
 
 const death_fraction_per_week:f64 = 0.1;
-
