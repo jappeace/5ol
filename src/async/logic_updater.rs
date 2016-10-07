@@ -20,8 +20,8 @@
 use std::sync::{Arc, RwLock};
 use chrono::Duration;
 
-use model::GameModel;
-use async::model_access::{ModelAccess, Change};
+use model::{GameModel, BodyClass, carrying_capacity_earth};
+use async::model_access::{ModelAccess, Change, HabitatTick};
 use async::thread_status::{ThreadControll, Status};
 
 pub struct Updater{
@@ -53,8 +53,31 @@ impl Updater{
     fn update_nature(model_writer:ModelAccess, granuality:Arc<RwLock<fn(i64)->Duration>>){
         // obtain read lock to prevent going faster than the writer at speed 0
         let lock = model_writer.read_lock_model();
-        let mktimefunc = granuality.read().unwrap();
-        model_writer.enqueue(Change::Time(mktimefunc(1)));
+        let interval = granuality.read().unwrap()(1);
+        let changes:Vec<HabitatTick> = lock.galaxy.iter()
+            .flat_map(|x| x.bodies.iter().filter_map(|cur| {
+                match &cur.class {
+                    &BodyClass::Rocky(ref h) => {
+                        if let Some(pop) = h.population.clone(){
+                            Some(
+                                HabitatTick{
+                                    address:cur.address,
+                                    pop_change:pop.calc_head_increase(
+                                        (h.size*carrying_capacity_earth) as i64,
+                                        interval
+                                    ),
+                                    money_change:pop.calc_tax_over(interval)
+                                }
+                            )
+                        }else{
+                            None
+                        }
+                    },
+                    _ =>{ None}
+                }
+            })
+            ).collect();
+        model_writer.enqueue(Change::Time(interval, changes));
     }
     pub fn set_granuality(&mut self, to:fn(i64)->Duration){
         *self.granuality.write().expect("writing new granu") = to;

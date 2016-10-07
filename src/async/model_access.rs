@@ -67,7 +67,7 @@ impl ModelAccess{
 
         self.controll.execute_async(move ||{
             match user_changes.recv(){
-                Ok(message) => ModelAccess::write(game_model.clone(), &message),
+                Ok(message) => ModelAccess::write(game_model.clone(), message),
                 _ => {
                     // it means that all senders are de-allocated
                     // therefore this thread became useless and the easiest way
@@ -105,61 +105,45 @@ impl ModelAccess{
         println!("poisned, try again");
         self.read_lock_model()
     }
-    fn write(game_model:Arc<RwLock<GameModel>>, change:&Change){
+    fn write(game_model:Arc<RwLock<GameModel>>, change:Change){
         match change{
-            &Change::BodyViewID(address, changeto) => {
+            Change::BodyViewID(address, changeto) => {
                 let mut body = game_model.read().expect("it").get_body(&address).clone();
                 body.view_id = changeto;
                 game_model.write().expect("it").set_body(&address, body);
             }       
-            &Change::Time(increase) => ModelAccess::resource_tick(game_model.write().expect("it"), increase),
-            &Change::Nothing => {}
+            Change::Time(increase, changes) => ModelAccess::resource_tick(game_model.write().expect("it"), increase, changes),
+            Change::Nothing => {}
         }
     }
-    fn resource_tick(mut game_model:RwLockWriteGuard<GameModel>, interval:Duration){
+    fn resource_tick(mut game_model:RwLockWriteGuard<GameModel>, interval:Duration, changes:Vec<HabitatTick>){
         game_model.time = game_model.time + interval;
-        let changes:Vec<(BodyAddress,i64,f64)> = game_model.galaxy.iter()
-            .flat_map(|x| x.bodies.iter().filter_map(|cur| {
-                    match &cur.class {
-                        &BodyClass::Rocky(ref h) => {
-                            if let Some(pop) = h.population.clone(){
-                                Some((
-                                    cur.address,
-                                    pop.calc_head_increase(
-                                        (h.size*carrying_capacity_earth) as i64,
-                                        interval
-                                    ),
-                                    pop.calc_tax_over(interval),
-                                ))
-                            }else{
-                                None
-                            }
-                        },
-                        _ =>{ None}
-                    }
-                })
-            ).collect();
         for change in changes{
-            let mut newbody = game_model.get_body(&change.0).clone();
+            let mut newbody = game_model.get_body(&change.address).clone();
             newbody.class = if let BodyClass::Rocky(mut habitat) = newbody.class{
                 habitat.population = habitat.population.map(|x| {
-                    game_model.players[x.owner].money += change.2 as i64;
-                    x.change_headcount(change.1)  
+                    game_model.players[x.owner].money += change.money_change as i64;
+                    x.change_headcount(change.pop_change)  
                 });
                 BodyClass::Rocky(habitat)
             }else{
                 newbody.class
             };
-            game_model.set_body(&change.0, newbody);
+            game_model.set_body(&change.address, newbody);
         }
     }
 }
 
 use petgraph::graph::NodeIndex;
 use model::BodyAddress;
-#[derive(Debug)]
+
 pub enum Change{
     BodyViewID(BodyAddress, Option<NodeIndex<u32>>),
-    Time(Duration),
+    Time(Duration, Vec<HabitatTick>),
     Nothing // usefull for dealing with controll changes (ie thread abort)
+}
+pub struct HabitatTick{
+    pub address:BodyAddress,
+    pub pop_change:i64,
+    pub money_change:f64
 }
