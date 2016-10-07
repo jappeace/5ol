@@ -149,7 +149,9 @@ impl State for ConquestState{
             previous = id;
         }
 
-        widget::Text::new(&format!("money: {}", model.players[0].money))
+        let money = format!("money: {}", model.players[0].money);
+        println!("{}", money);
+        widget::Text::new(&money)
             .color(color::LIGHT_RED)
             .top_left_with_margin_on(self.ids.canvas_root, 10.0)
             .align_text_left()

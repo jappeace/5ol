@@ -122,7 +122,20 @@ impl ModelAccess{
             let mut newbody = game_model.get_body(&change.address).clone();
             newbody.class = if let BodyClass::Rocky(mut habitat) = newbody.class{
                 habitat.population = habitat.population.map(|x| {
-                    game_model.players[x.owner].money += change.money_change as i64;
+                    let current_money = game_model.players[x.owner].money;
+                    if change.money_change > 0.0 {
+                        if current_money < max_money{
+                            game_model.players[x.owner].money += change.money_change as i64;
+                        }else{
+                            game_model.players[x.owner].money = max_money;
+                        }
+                    }else{
+                        if current_money > -max_money{
+                            game_model.players[x.owner].money += change.money_change as i64;
+                        }else{
+                            game_model.players[x.owner].money = -max_money;
+                        }
+                    }
                     x.change_headcount(change.pop_change)  
                 });
                 BodyClass::Rocky(habitat)
@@ -133,7 +146,7 @@ impl ModelAccess{
         }
     }
 }
-
+const max_money:i64 = 9999999999999;
 use petgraph::graph::NodeIndex;
 use model::BodyAddress;
 
