@@ -27,7 +27,7 @@ pub type Au = f64;
 // relative to earth
 pub type Earths = f64;
 
-use time::Duration;
+use chrono::Duration;
 use geometry::*;
 use petgraph::graph::NodeIndex;
 use std::usize;

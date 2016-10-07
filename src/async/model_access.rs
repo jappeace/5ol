@@ -30,7 +30,7 @@
 
 use std::thread;
 use std::sync::{Arc, RwLock, RwLockWriteGuard, RwLockReadGuard};
-use time::Duration;
+use chrono::Duration;
 
 use model::{carrying_capacity_earth, GameModel, BodyClass};
 use async::thread_status::{ThreadControll, Status};

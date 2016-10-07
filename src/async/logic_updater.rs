@@ -18,7 +18,7 @@
 // This file is the logic behind the time controlls.
 
 use std::sync::{Arc, RwLock};
-use time::Duration;
+use chrono::Duration;
 
 use model::GameModel;
 use async::model_access::{ModelAccess, Change};

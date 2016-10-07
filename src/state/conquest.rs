@@ -20,7 +20,7 @@
 use state::state_machine::{State, StateChange, StateEvent};
 use piston_window::Input;
 use conrod;
-use time::Duration;
+use chrono::Duration;
 
 use geometry::*;
 use model::*;

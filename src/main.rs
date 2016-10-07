@@ -21,7 +21,7 @@
 #[macro_use] extern crate conrod;
 extern crate find_folder;
 extern crate piston_window;
-extern crate time;
+extern crate chrono;
 extern crate petgraph;
 
 use piston_window::{EventLoop, OpenGL, PistonWindow, WindowSettings};
