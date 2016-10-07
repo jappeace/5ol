@@ -198,6 +198,7 @@ impl Population{
         } 
     }
     pub fn change_headcount(mut self, by:i64) -> Self{
+        println!("heads {}", self.head_count);
         self.head_count += by;
         self
     }
