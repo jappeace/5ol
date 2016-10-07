@@ -23,7 +23,9 @@ use conrod;
 use chrono::Duration;
 
 use geometry::*;
-use model::*;
+use model::root::GameModel;
+use model::habitat::*;
+use model::galaxy::*;
 use camera::Camera;
 use async::pulser::Pulser;
 use async::logic_updater::Updater;
@@ -239,7 +241,7 @@ impl ConquestState{
         ]
         ))))
     }
-    pub fn new(generator: conrod::widget::id::Generator, start_cam:Camera, start_model:World)->ConquestState{
+    pub fn new(generator: conrod::widget::id::Generator, start_cam:Camera, start_model:Arc<RwLock<GameModel>>)->ConquestState{
         ConquestState{
             ids:Ids::new(generator),
             camera:start_cam,

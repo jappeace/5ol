@@ -20,7 +20,7 @@
 use std::sync::{Arc, RwLock};
 use chrono::Duration;
 
-use model::GameModel;
+use model::root::GameModel;
 use async::model_access::{ModelAccess, Change};
 use async::thread_status::{ThreadControll, Status};
 

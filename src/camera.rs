@@ -19,7 +19,7 @@
 // (au,au), should be rendered in (px,px)
 
 use geometry::*;
-use model::*;
+use model::galaxy::Au;
 use conrod::Dimensions;
 
 pub struct Camera{

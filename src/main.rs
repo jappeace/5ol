@@ -34,7 +34,12 @@ mod state{
     pub mod planet;
 }
 mod geometry;
-mod model;
+mod model{
+    pub mod root;
+    pub mod galaxy;
+    pub mod habitat;
+    pub mod ship;
+}
 mod camera;
 mod async{
     pub mod thread_status;

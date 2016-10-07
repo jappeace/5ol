@@ -22,7 +22,7 @@ use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget
 use conrod;
 
 use state::state_machine::{State, StateChange};
-use model::*;
+use model::galaxy::{BodyAddress, BodyClass};
 use async::model_access::ModelAccess;
 
 pub struct PlanetState{

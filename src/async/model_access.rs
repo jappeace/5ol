@@ -32,7 +32,11 @@ use std::thread;
 use std::sync::{Arc, RwLock, RwLockWriteGuard, RwLockReadGuard};
 use chrono::Duration;
 
-use model::{carrying_capacity_earth, GameModel, BodyClass};
+use model::root::GameModel;
+use model::galaxy::{BodyAddress,BodyClass};
+use model::habitat::carrying_capacity_earth;
+use petgraph::graph::NodeIndex;
+
 use async::thread_status::{ThreadControll, Status};
 use std::sync::mpsc::{channel, Sender};
 
@@ -155,8 +159,6 @@ impl ModelAccess{
     }
 }
 
-use petgraph::graph::NodeIndex;
-use model::BodyAddress;
 #[derive(Debug)]
 pub enum Change{
     BodyViewID(BodyAddress, Option<NodeIndex<u32>>),
