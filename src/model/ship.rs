@@ -18,7 +18,9 @@
 // this file models ships in the galaxy, the main form of units
 
 use geometry::Position;
-use model::galaxy::{calc_orbit, BodyAddress, System};
+use model::galaxy::{calc_orbit, BodyAddress, System, Au};
+use model::colony::Constructable;
+use model::root::GameModel;
 use chrono::Duration;
 #[derive(Clone)]
 pub struct Ship{
@@ -26,6 +28,17 @@ pub struct Ship{
     id:usize,
     ship_price:i64,
     movement:Movement
+}
+impl Constructable for Ship{
+    fn on_complete(&self, model:&mut GameModel, constructor_address:&BodyAddress)->(){
+        let construction_site = constructor_address.get_body(&model.galaxy);
+        if let Some(owner) = construction_site.get_owner(){
+            let mut result = self.clone();
+            result.owner = owner;
+            result.movement = Movement::Orbit(constructor_address.clone());
+            model.ships.push(result);
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -41,13 +54,14 @@ impl Movement{
                 let body = address.get_body(galaxy);
                 body.calc_position(time) + calc_orbit(
                     &Duration::hours(2),
-                    0.000000000668449198,
+                    ship_orbit_distance,
                     time
                 )
             }
         }
     }
 }
+const ship_orbit_distance:Au = 0.000000000668449198;
 #[derive(Clone)]
 struct Velocity{
     direction:f64, // rads

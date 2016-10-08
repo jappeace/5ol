@@ -122,7 +122,7 @@ impl ModelAccess{
     }
     fn resource_tick(mut game_model:RwLockWriteGuard<GameModel>, interval:Duration){
         game_model.time = game_model.time + interval;
-        let changes:Vec<(BodyAddress,i64,f64)> = game_model.galaxy.iter()
+        let changes:Vec<(BodyAddress,i64,Option<(usize,i64)>)> = game_model.galaxy.iter()
             .flat_map(|x| x.bodies.iter().filter_map(|cur| {
                     match &cur.class {
                         &BodyClass::Rocky(ref h) => {
@@ -133,7 +133,8 @@ impl ModelAccess{
                                         (h.size*carrying_capacity_earth) as i64,
                                         interval
                                     ),
-                                    pop.calc_tax_over(interval),
+                                    // no owner, no tax change
+                                    h.owner.map_or(None, |x| Some((x,pop.calc_tax_over(interval) as i64))),
                                 ))
                             }else{
                                 None
@@ -146,8 +147,8 @@ impl ModelAccess{
         for change in changes{
             let mut newbody = change.0.get_body(&game_model.galaxy).clone();
             newbody.class = if let BodyClass::Rocky(mut habitat) = newbody.class{
+                change.2.map(|x| game_model.players[x.0].money += x.1);
                 habitat.population = habitat.population.map(|x| {
-                    game_model.players[x.owner].money += change.2 as i64;
                     x.change_headcount(change.1)  
                 });
                 BodyClass::Rocky(habitat)

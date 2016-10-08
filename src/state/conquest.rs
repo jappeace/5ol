@@ -191,9 +191,9 @@ impl ConquestState{
         let earth = StellarBody::new(
             BodyClass::Rocky(
                 Colony::new_inhabited(
+                    0,
                     1.0,
                     Population::new(
-                        0,
                         7456000000
                     )
                 )

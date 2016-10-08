@@ -72,6 +72,12 @@ impl StellarBody{
     pub fn calc_position(&self, since_start_of_simulation:&Duration) -> Position{
         calc_orbit(&self.orbit_time, self.distance, since_start_of_simulation)
     }
+    pub fn get_owner(&self)->Option<usize>{
+        match self.class{
+            BodyClass::Rocky(ref colony) => colony.owner,
+            _ => None
+        }
+    }
 }
 pub fn calc_orbit(orbit_duration:&Duration, orbit_distance:Au, time:&Duration) -> Position{
     let orbit_time:i64 = orbit_duration.num_milliseconds();

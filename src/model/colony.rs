@@ -22,39 +22,53 @@
 
 // this file models the places where people live
 use chrono::Duration;
-use model::galaxy::Earths;
+use model::galaxy::{Earths,BodyAddress, System};
+use model::root::{GameModel};
 use std::usize;
+use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Colony{
     pub size:Earths,
+    pub owner:Option<usize>, // playerid
     // not colonized, no pop
-    pub population:Option<Population>
+    pub population:Option<Population>,
+    pub construction_queue:Vec<Construction>,
 }
 impl Colony{
     pub fn new_empty(size:Earths)->Colony{
         Colony{
             population:None,
-            size:size
+            owner:None,
+            size:size,
+            construction_queue:Vec::new()
         }
     }
-    pub fn new_inhabited(surface:Earths, population:Population)->Colony{
+    pub fn new_inhabited(owner:usize, surface:Earths, population:Population)->Colony{
         let mut result = Colony::new_empty(surface);
         result.population = Some(population);
+        result.owner = Some(owner);
         result
     }
 }
-
+#[derive(Clone)]
+pub struct Construction{
+    pub work_needed:Duration,
+    pub progress:Duration,
+    pub on_complete:Arc<Constructable + Send + Sync> 
+}
+pub trait Constructable{
+    fn on_complete(&self, model:&mut GameModel, contructor_address:&BodyAddress)->(){}
+}
 #[derive(Clone)]
 pub struct Population{
-    pub owner:usize, // playerid
     pub head_count:i64,
     pub tax:f64 // annual tax pp
 }
 impl Population{
-    pub fn new(owner:usize,head_count:i64)->Population{
+    pub fn new(head_count:i64)->Population{
         Population{
-            owner:owner,
             head_count:head_count,
             tax:0.1,
         } 
