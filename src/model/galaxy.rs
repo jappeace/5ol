@@ -23,7 +23,7 @@
 use chrono::Duration;
 use geometry::*;
 use petgraph::graph::NodeIndex;
-use model::habitat::Habitat;
+use model::colony::Colony;
 use std::usize;
 
 // austronomical unit, distance from the earth to the sun. Turns out the milky
@@ -35,7 +35,7 @@ pub type Earths = f64;
 
 #[derive(Clone)]
 pub enum BodyClass{
-    Rocky(Habitat),
+    Rocky(Colony),
     GasGiant,
     Star,
 }

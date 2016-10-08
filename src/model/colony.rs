@@ -26,20 +26,20 @@ use model::galaxy::Earths;
 use std::usize;
 
 #[derive(Clone)]
-pub struct Habitat{
+pub struct Colony{
     pub size:Earths,
     // not colonized, no pop
     pub population:Option<Population>
 }
-impl Habitat{
-    pub fn new_empty(size:Earths)->Habitat{
-        Habitat{
+impl Colony{
+    pub fn new_empty(size:Earths)->Colony{
+        Colony{
             population:None,
             size:size
         }
     }
-    pub fn new_inhabited(surface:Earths, population:Population)->Habitat{
-        let mut result = Habitat::new_empty(surface);
+    pub fn new_inhabited(surface:Earths, population:Population)->Colony{
+        let mut result = Colony::new_empty(surface);
         result.population = Some(population);
         result
     }

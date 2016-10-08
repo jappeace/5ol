@@ -34,7 +34,7 @@ use chrono::Duration;
 
 use model::root::GameModel;
 use model::galaxy::{BodyAddress,BodyClass};
-use model::habitat::carrying_capacity_earth;
+use model::colony::carrying_capacity_earth;
 use petgraph::graph::NodeIndex;
 
 use async::thread_status::{ThreadControll, Status};

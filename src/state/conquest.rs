@@ -24,7 +24,7 @@ use chrono::Duration;
 
 use geometry::*;
 use model::root::GameModel;
-use model::habitat::*;
+use model::colony::*;
 use model::galaxy::*;
 use camera::Camera;
 use async::pulser::Pulser;
@@ -190,7 +190,7 @@ impl ConquestState{
     pub fn new_game(generator: conrod::widget::id::Generator) -> ConquestState{
         let earth = StellarBody::new(
             BodyClass::Rocky(
-                Habitat::new_inhabited(
+                Colony::new_inhabited(
                     1.0,
                     Population::new(
                         0,
@@ -209,7 +209,7 @@ impl ConquestState{
                     StellarBody::create_single_star("sun"),
                     StellarBody::new(
                         BodyClass::Rocky(
-                            Habitat::new_empty(0.147)
+                            Colony::new_empty(0.147)
                         ),
                         "mercury",
                         Duration::days(88),
@@ -217,7 +217,7 @@ impl ConquestState{
                     ),
                     StellarBody::new(
                         BodyClass::Rocky(
-                            Habitat::new_empty(0.902)
+                            Colony::new_empty(0.902)
                         ),
                         "venus",
                         Duration::days(225),
@@ -226,7 +226,7 @@ impl ConquestState{
                     earth,
                     StellarBody::new(
                         BodyClass::Rocky(
-                            Habitat::new_empty(0.284)
+                            Colony::new_empty(0.284)
                         ),
                         "mars",
                         Duration::days(780),

@@ -37,7 +37,7 @@ mod geometry;
 mod model{
     pub mod root;
     pub mod galaxy;
-    pub mod habitat;
+    pub mod colony;
     pub mod ship;
 }
 mod camera;
