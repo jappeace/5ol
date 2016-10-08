@@ -17,8 +17,48 @@
 
 // this file models ships in the galaxy, the main form of units
 
+use geometry::Position;
+use model::galaxy::{calc_orbit, BodyAddress, System};
+use chrono::Duration;
 #[derive(Clone)]
 pub struct Ship{
     owner:usize, // playerid
     id:usize,
+    ship_price:i64,
+    movement:Movement
+}
+
+#[derive(Clone)]
+enum Movement{
+    Vector(Duration, Position, Velocity),
+    Orbit(BodyAddress)
+}
+impl Movement{
+    fn calc_position(&self, time:&Duration, galaxy:&Vec<System>)->Position{
+        match self {
+            &Movement::Vector(start_time, pos,ref vel) => pos+vel.calc_movement(&(time.clone() - start_time)),
+            &Movement::Orbit(address) => {
+                let body = address.get_body(galaxy);
+                body.calc_position(time) + calc_orbit(
+                    &Duration::hours(2),
+                    0.000000000668449198,
+                    time
+                )
+            }
+        }
+    }
+}
+#[derive(Clone)]
+struct Velocity{
+    direction:f64, // rads
+    speed:f64 // au/s
+}
+impl Velocity{
+    fn calc_movement(&self, time:&Duration) -> Position{
+        let millis = time.num_milliseconds() as f64 / 1000.0;
+        Position::new(
+            self.speed*self.direction.cos() * millis,
+            self.speed*self.direction.sin() * millis
+        )
+    }
 }

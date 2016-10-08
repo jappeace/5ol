@@ -112,9 +112,9 @@ impl ModelAccess{
     fn write(game_model:Arc<RwLock<GameModel>>, change:&Change){
         match change{
             &Change::BodyViewID(address, changeto) => {
-                let mut body = game_model.read().expect("it").get_body(&address).clone();
+                let mut body = address.get_body(&game_model.read().expect("it").galaxy).clone();
                 body.view_id = changeto;
-                game_model.write().expect("it").set_body(&address, body);
+                address.set_body(&mut game_model.write().expect("it").galaxy, body);
             }       
             &Change::Time(increase) => ModelAccess::resource_tick(game_model.write().expect("it"), increase),
             &Change::Nothing => {}
@@ -144,7 +144,7 @@ impl ModelAccess{
                 })
             ).collect();
         for change in changes{
-            let mut newbody = game_model.get_body(&change.0).clone();
+            let mut newbody = change.0.get_body(&game_model.galaxy).clone();
             newbody.class = if let BodyClass::Rocky(mut habitat) = newbody.class{
                 habitat.population = habitat.population.map(|x| {
                     game_model.players[x.owner].money += change.2 as i64;
@@ -154,7 +154,7 @@ impl ModelAccess{
             }else{
                 newbody.class
             };
-            game_model.set_body(&change.0, newbody);
+            change.0.set_body(&mut game_model.galaxy, newbody);
         }
     }
 }

@@ -70,20 +70,23 @@ impl StellarBody{
         StellarBody::new(BodyClass::Star, name, Duration::zero(), 0.0)
     }
     pub fn calc_position(&self, since_start_of_simulation:&Duration) -> Position{
-        let orbit_time:i64 = self.orbit_time.num_seconds();
-        if orbit_time == 0 {
-            // prevents division by 0
-            return center;
-        }
-        // cut off previous orbits
-        let cycle_pogress:i64 = since_start_of_simulation.num_seconds() % orbit_time; // calculate the current orbit progress
-        use std::f64::consts;
-        let progress_fraction:f64 = ((cycle_pogress as f64)/(orbit_time as f64)) * consts::PI * 2.0;
-        // calulate the location
-        Position{
-            x: progress_fraction.sin() * self.distance,
-            y: progress_fraction.cos() * self.distance
-        }
+        calc_orbit(&self.orbit_time, self.distance, since_start_of_simulation)
+    }
+}
+pub fn calc_orbit(orbit_duration:&Duration, orbit_distance:Au, time:&Duration) -> Position{
+    let orbit_time:i64 = orbit_duration.num_milliseconds();
+    if orbit_time == 0 {
+        // prevents division by 0
+        return center;
+    }
+    // cut off previous orbits
+    let cycle_pogress:i64 = time.num_milliseconds() % orbit_time; // calculate the current orbit progress
+    use std::f64::consts;
+    let progress_fraction:f64 = ((cycle_pogress as f64)/(orbit_time as f64)) * consts::PI * 2.0;
+    // calulate the location
+    Position{
+        x: progress_fraction.sin() * orbit_distance,
+        y: progress_fraction.cos() * orbit_distance 
     }
 }
 
@@ -92,6 +95,14 @@ pub struct BodyAddress{
     pub system_id:usize,
     pub planet_id:usize,
     // TODO: moon id? maybe as an option?
+}
+impl BodyAddress{
+    pub fn get_body<'a>(&self, galaxy:&'a Vec<System>) -> &'a StellarBody{
+        &galaxy[self.system_id].bodies[self.planet_id]
+    }
+    pub fn set_body(&self, galaxy:&mut Vec<System>, change_to:StellarBody){
+        galaxy[self.system_id].bodies[self.planet_id] = change_to;
+    }
 }
 const unkown_address:BodyAddress = BodyAddress{system_id:usize::MAX,planet_id:usize::MAX};
 

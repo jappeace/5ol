@@ -54,12 +54,6 @@ impl GameModel{
             time:Duration::zero()
         } 
     }
-    pub fn get_body(&self, address:&BodyAddress) -> &StellarBody{
-        &self.galaxy[address.system_id].bodies[address.planet_id]
-    }
-    pub fn set_body(&mut self, address:&BodyAddress, change_to:StellarBody){
-        self.galaxy[address.system_id].bodies[address.planet_id] = change_to;
-    }
 }
 
 #[derive(Clone)]
