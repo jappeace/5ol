@@ -42,16 +42,17 @@ impl Ship{
             owner:owner,
             id:MAX, // make sure it'll crash if not assigned
             ship_price:ship_price,
-            movement:Movement::Orbit(construct_location),
+            movement:Movement::Orbit(Duration::zero(), construct_location),
             view:None
         }
     }
 }
 impl Constructable for Ship{
-    fn on_complete(&self, model:&mut GameModel, _:&BodyAddress)->(){
+    fn on_complete(&self, model:&mut GameModel, address:&BodyAddress)->(){
         print!("completed");
         let mut result = self.clone();
         result.id = model.ships.len();
+        result.movement = Movement::Orbit(model.time, *address);
         model.ships.push(result);
     }
     fn price(&self) -> i64{
@@ -62,24 +63,25 @@ impl Constructable for Ship{
 #[derive(Clone)]
 pub enum Movement{
     Vector(Duration, Position, Velocity),
-    Orbit(BodyAddress)
+    Orbit(Duration, BodyAddress)
 }
 impl Movement{
     pub fn calc_position(&self, time:&Duration, galaxy:&Vec<System>)->Position{
         match self {
             &Movement::Vector(start_time, pos,ref vel) => pos+vel.calc_movement(&(time.clone() - start_time)),
-            &Movement::Orbit(address) => {
+            &Movement::Orbit(start_time, address) => {
                 let body = address.get_body(galaxy);
                 body.calc_position(time) + calc_orbit(
-                    &Duration::hours(2),
+                    &(Duration::hours(5) + Duration::minutes(5) + Duration::seconds(5) + Duration::milliseconds(5)),
                     ship_orbit_distance,
-                    time
+                    &(*time - start_time),
                 )
             }
         }
     }
 }
 const ship_orbit_distance:Au = 0.000_000_000_668_449_198;
+
 #[derive(Clone)]
 pub struct Velocity{
     direction:f64, // rads

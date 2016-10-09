@@ -84,13 +84,14 @@ impl State for ConquestState{
             }
         }
 
+        use conrod::Color;
         for ship in model.ships
             .iter()
-            .map(|x| (x, x.movement.calc_position(&model.time,&model.galaxy)))
+            .map(|x| (x, projection.world_to_screen(&x.movement.calc_position(&model.time, &model.galaxy))))
             {
-                println!("shippp! {}", ship.0.id);
-                Oval::fill([1.0,4.0])
-                    .x(ship.1.x).y(ship.1.y)
+                println!("shippp! {}, ({},{})", ship.0.id, ship.1.x, ship.1.y);
+                Oval::fill([5.0,5.0])
+                    .x(ship.1.x).y(ship.1.y).color(Color::Rgba(0.0,0.0,0.0,1.0))
                     .set(ship.0.view.map_or_else(
                         || {
                             let result = ui.widget_id_generator().next();
