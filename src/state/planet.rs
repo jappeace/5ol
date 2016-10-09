@@ -26,12 +26,14 @@ use state::state_machine::{State, StateChange};
 use model::galaxy::{BodyAddress, BodyClass};
 use model::ship::Ship;
 use async::model_access::{Change,ModelAccess};
+use std::sync::mpsc::Sender;
 
 pub struct PlanetState{
     ids:Ids,
     subject: BodyAddress,
     previous_state:Option<Box<State>>,
-    model_access:ModelAccess
+    model_access:ModelAccess,
+    change_queue:Option<Sender<Change>>
 }
 impl PlanetState{
     pub fn new(
@@ -43,14 +45,15 @@ impl PlanetState{
             ids:Ids::new(generator),
             subject:subject,
             previous_state:None,
-            model_access:model_access
+            model_access:model_access,
+            change_queue:None
         }
     }
 }
 impl State for PlanetState{
     fn enter(&mut self, previous:Box<State>) -> StateChange{
         self.previous_state = Some(previous);
-        self.model_access.start();
+        self.change_queue = Some(self.model_access.start());
         None
     }
     fn update(&mut self, ui:&mut conrod::UiCell) -> StateChange{
@@ -94,21 +97,18 @@ impl State for PlanetState{
                     .label_color(color::GRAY)
                     .set(self.ids.build_ship , ui){
                         println!("building for {}", owner);
-                        self.model_access.enqueue(
+                        self.change_queue.clone().map(|x| x.send(
                             Change::Construct(
                                 Arc::new(
                                     Ship::new(0,1000,self.subject)
                                 ),
                                 self.subject
                             )
-                        )
+                        ));
                     }
             }
         }
         None
-    }
-    fn exit(&mut self){
-        self.model_access.stop();
     }
 }
 

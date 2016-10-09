@@ -22,10 +22,9 @@
 
 // this file models the places where people live
 use chrono::Duration;
-use model::galaxy::{Earths,BodyAddress, System};
+use model::galaxy::{Earths,BodyAddress };
 use model::root::{GameModel};
 use std::usize;
-use std::rc::Rc;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -63,6 +62,7 @@ impl Colony{
                 result.push(job.constructable);
                 result
             }else{
+                println!("not finished ship");
                 self.construction_queue.push(job);
                 not_done_yet
             },
@@ -95,6 +95,7 @@ impl Construction{
         }
     }
 }
+#[allow(unused_variables)]
 pub trait Constructable{
     fn on_complete(&self, model:&mut GameModel, contructor_address:&BodyAddress)->(){}
     fn work_needed(&self) -> Duration{Duration::weeks(4)}
@@ -113,7 +114,6 @@ impl Population{
         } 
     }
     pub fn change_headcount(mut self, by:i64) -> Self{
-        println!("heads {}", self.head_count);
         self.head_count += by;
         self
     }

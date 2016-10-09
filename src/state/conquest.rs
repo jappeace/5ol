@@ -69,7 +69,7 @@ impl State for ConquestState{
             let view_id = match body.view_id{
                 None => {
                     let newid = ui.widget_id_generator().next();
-                    self.updater.model_writer.enqueue(Change::BodyViewID(body.address, Some(newid)));
+                    self.updater.enqueue(Change::BodyViewID(body.address, Some(newid)));
                     newid
                 }
                 Some(x) => x
@@ -94,7 +94,7 @@ impl State for ConquestState{
                     .set(ship.0.view.map_or_else(
                         || {
                             let result = ui.widget_id_generator().next();
-                            self.updater.model_writer.enqueue(
+                            self.updater.enqueue(
                                 Change::ShipViewID(ship.0.id,Some(result))
                             );
                             result

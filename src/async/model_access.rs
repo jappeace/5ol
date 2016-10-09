@@ -43,61 +43,35 @@ use std::sync::mpsc::{channel, Sender};
 
 #[derive(Clone)]
 pub struct ModelAccess{
-    controll:ThreadControll,
-    pub game_model:Arc<RwLock<GameModel>>,
-    pub change_queue:Sender<Change>
+    pub game_model:Arc<RwLock<GameModel>>
 }
 impl ModelAccess{
     pub fn new(start_model:Arc<RwLock<GameModel>>) -> ModelAccess{
         let mut controll = ThreadControll::new();
         controll.set_status(Status::Aborted);
         controll.set_pace(0);
-        let (cq,_) = channel();
         ModelAccess{
             game_model:start_model,
-            controll:controll,
-            change_queue:cq
         }
     }
-    pub fn start(&mut self) {
-        if self.controll.get_status() != Status::Aborted {
-            panic!("already started");
-        }
-        self.controll.set_status(Status::Executing);
+    pub fn start(&mut self) -> Sender<Change> {
+        println!("start access");
 
         let game_model = self.game_model.clone();
-        let (cq,user_changes) = channel();
-        self.change_queue = cq;
+        let (sender,receiver) = channel();
 
-        self.controll.execute_async(move ||{
-            match user_changes.recv(){
-                Ok(message) => ModelAccess::write(game_model.clone(), &message),
-                _ => {
-                    // it means that all senders are de-allocated
-                    // therefore this thread became useless and the easiest way
-                    // of dealing with this is crashing it.
-                    panic!("otherside hung up");
+        thread::spawn(move ||{
+            let mut running = true;
+            while running{
+                match receiver.recv(){
+                    Ok(message) => ModelAccess::write(game_model.clone(), &message),
+                    _ => {
+                        running = false
+                    }
                 }
             }
-        })
-    }
-    pub fn stop(&mut self){
-        let sender = self.change_queue.clone();
-        // prevent a deadlock by flushing the thread with messages
-        thread::spawn(move ||{
-            while let Ok(_) = sender.send(Change::Nothing) {
-                thread::yield_now();
-            }
-            // otherside hung up, this is what we wanted, this thread can die now
         });
-        self.controll.stop();
-        println!("stopped access");
-    }
-    pub fn enqueue(&self, change:Change){
-        if let Ok(_) = self.change_queue.send(change){
-            return;
-        }
-        panic!("sending failed");
+        sender
     }
     pub fn copy_model(&self) -> GameModel{
         self.read_lock_model().clone()
@@ -110,15 +84,15 @@ impl ModelAccess{
         self.read_lock_model()
     }
     fn write(game_model:Arc<RwLock<GameModel>>, change:&Change){
-        match change{
-            &Change::BodyViewID(address, changeto) => {
+        match *change{
+            Change::BodyViewID(address, changeto) => {
                 let mut body = address.get_body(&game_model.read().expect("it").galaxy).clone();
                 body.view_id = changeto;
                 address.set_body(&mut game_model.write().expect("it").galaxy, body);
             }       
-            &Change::ShipViewID(id,changeto) =>
+            Change::ShipViewID(id,changeto) =>
                 game_model.write().expect("it").ships[id].view = changeto,
-            &Change::Construct(ref constructable, address) =>{
+            Change::Construct(ref constructable, address) =>{
                 let mut body = address.get_body(&game_model.read().expect("it").galaxy).clone();
                 body.class = if let BodyClass::Rocky(mut colony) = body.class{
                     colony.construction_queue.push(Construction::new(constructable.clone()));
@@ -126,8 +100,10 @@ impl ModelAccess{
                 }else{body.class};
                 address.set_body(&mut game_model.write().expect("it").galaxy, body);
             }
-            &Change::Time(increase) => ModelAccess::resource_tick(game_model.write().expect("it"), increase),
-            &Change::Nothing => {}
+            Change::Time(increase) => ModelAccess::resource_tick(game_model.write().expect("it"), increase),
+            Change::StopModifications => {
+                panic!("done"); // works best
+            }
         }
     }
     fn resource_tick(mut game_model:RwLockWriteGuard<GameModel>, interval:Duration){
@@ -183,5 +159,5 @@ pub enum Change{
     ShipViewID(usize,Option<NodeIndex<u32>>),
     Construct(AConstructable, BodyAddress),
     Time(Duration),
-    Nothing // usefull for dealing with controll changes (ie thread abort)
+    StopModifications // usefull for dealing with controll changes (ie thread abort)
 }

@@ -18,7 +18,7 @@
 // This is the root model or model abstract, the root of the state of the program
 
 use chrono::Duration;
-use model::galaxy::{System, BodyAddress, StellarBody};
+use model::galaxy::{System, BodyAddress};
 use model::ship::Ship;
 use std::usize;
 

@@ -81,7 +81,7 @@ impl Movement{
 }
 const ship_orbit_distance:Au = 0.000_000_000_668_449_198;
 #[derive(Clone)]
-struct Velocity{
+pub struct Velocity{
     direction:f64, // rads
     speed:f64 // au/s
 }
