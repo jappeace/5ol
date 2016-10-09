@@ -50,7 +50,7 @@ impl State for ConquestState{
     }
     fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
         use conrod::{color, widget, Colorable, Widget, Positionable, Labelable, Sizeable};
-        use conrod::widget::Button;
+        use conrod::widget::{Button, Oval};
         let model = self.updater.model_writer.copy_model();
         let canvas = widget::Canvas::new();
         canvas
@@ -59,7 +59,6 @@ impl State for ConquestState{
             .set(self.ids.canvas_root, ui) ;
         let dimens = ui.window_dim();
         let time = model.time;
-        println!("update {:?}, {}", time, time.num_weeks());
         let projection = self.camera.create_projection(&dimens);
         let visible = model.galaxy.iter()
             .filter(|x| projection.is_visible(&x.used_space))
@@ -83,6 +82,24 @@ impl State for ConquestState{
                     self.updater.model_writer.clone()
                 )));
             }
+        }
+
+        for ship in model.ships
+            .iter()
+            .map(|x| (x, x.movement.calc_position(&model.time,&model.galaxy)))
+            {
+                println!("shippp! {}", ship.0.id);
+                Oval::fill([1.0,4.0])
+                    .x(ship.1.x).y(ship.1.y)
+                    .set(ship.0.view.map_or_else(
+                        || {
+                            let result = ui.widget_id_generator().next();
+                            self.updater.model_writer.enqueue(
+                                Change::ShipViewID(ship.0.id,Some(result))
+                            );
+                            result
+                        },
+                        |x| x),ui)
         }
 
         
@@ -151,8 +168,7 @@ impl State for ConquestState{
             previous = id;
         }
 
-        let money = format!("money: {}", model.players[0].money);
-        println!("{}", money);
+        let money = format!("money: {} \n time: {}", model.players[0].money, time.num_weeks());
         widget::Text::new(&money)
             .color(color::LIGHT_RED)
             .top_left_with_margin_on(self.ids.canvas_root, 10.0)

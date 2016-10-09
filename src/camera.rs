@@ -61,10 +61,13 @@ impl<'a> Projection<'a>{
     }
     pub fn is_visible(&self, disk:&Disk) -> bool{
         let (tl, tr, bl, br) = self.view_port.corners();
-        self.view_port.contains(&disk.position) ||
+        self.is_pos_visible(&disk.position) ||
             disk.contains([tl, tr]) ||
             disk.contains([tr, br]) ||
             disk.contains([br, bl]) ||
             disk.contains([bl, tl])
+    }
+    pub fn is_pos_visible(&self, pos:&Position) -> bool{
+        self.view_port.contains(&pos)
     }
 }

@@ -34,7 +34,7 @@ use chrono::Duration;
 
 use model::root::GameModel;
 use model::galaxy::{BodyAddress,BodyClass};
-use model::colony::carrying_capacity_earth;
+use model::colony::{AConstructable,Construction, carrying_capacity_earth};
 use petgraph::graph::NodeIndex;
 
 use async::thread_status::{ThreadControll, Status};
@@ -116,6 +116,16 @@ impl ModelAccess{
                 body.view_id = changeto;
                 address.set_body(&mut game_model.write().expect("it").galaxy, body);
             }       
+            &Change::ShipViewID(id,changeto) =>
+                game_model.write().expect("it").ships[id].view = changeto,
+            &Change::Construct(ref constructable, address) =>{
+                let mut body = address.get_body(&game_model.read().expect("it").galaxy).clone();
+                body.class = if let BodyClass::Rocky(mut colony) = body.class{
+                    colony.construction_queue.push(Construction::new(constructable.clone()));
+                    BodyClass::Rocky(colony)
+                }else{body.class};
+                address.set_body(&mut game_model.write().expect("it").galaxy, body);
+            }
             &Change::Time(increase) => ModelAccess::resource_tick(game_model.write().expect("it"), increase),
             &Change::Nothing => {}
         }
@@ -144,25 +154,34 @@ impl ModelAccess{
                     }
                 })
             ).collect();
+        let mut constructions:Vec<(BodyAddress, AConstructable)> = Vec::new();
         for change in changes{
             let mut newbody = change.0.get_body(&game_model.galaxy).clone();
-            newbody.class = if let BodyClass::Rocky(mut habitat) = newbody.class{
+            newbody.class = if let BodyClass::Rocky(mut habitat) = newbody.class.clone(){
                 change.2.map(|x| game_model.players[x.0].money += x.1);
                 habitat.population = habitat.population.map(|x| {
                     x.change_headcount(change.1)  
                 });
+                constructions.append(
+                    &mut habitat.construction_tick(interval)
+                        .into_iter().map(|x| (newbody.address, x)).collect()
+                );
                 BodyClass::Rocky(habitat)
             }else{
                 newbody.class
             };
             change.0.set_body(&mut game_model.galaxy, newbody);
         }
+        for construction in constructions{
+            construction.1.on_complete(&mut game_model, &construction.0);
+        }
     }
 }
 
-#[derive(Debug)]
 pub enum Change{
     BodyViewID(BodyAddress, Option<NodeIndex<u32>>),
+    ShipViewID(usize,Option<NodeIndex<u32>>),
+    Construct(AConstructable, BodyAddress),
     Time(Duration),
     Nothing // usefull for dealing with controll changes (ie thread abort)
 }

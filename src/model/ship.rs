@@ -16,6 +16,7 @@
 
 
 // this file models ships in the galaxy, the main form of units
+use petgraph::graph::NodeIndex;
 
 use geometry::Position;
 use model::galaxy::{calc_orbit, BodyAddress, System, Au};
@@ -25,29 +26,46 @@ use chrono::Duration;
 #[derive(Clone)]
 pub struct Ship{
     owner:usize, // playerid
-    id:usize,
+    pub id:usize,
     ship_price:i64,
-    movement:Movement
+    pub movement:Movement,
+    pub view:Option<NodeIndex<u32>>
+}
+impl Ship{
+    pub fn new(
+        owner:usize,
+        ship_price:i64,
+        construct_location:BodyAddress,
+    ) -> Ship{
+        use std::usize::MAX;
+        Ship{
+            owner:owner,
+            id:MAX, // make sure it'll crash if not assigned
+            ship_price:ship_price,
+            movement:Movement::Orbit(construct_location),
+            view:None
+        }
+    }
 }
 impl Constructable for Ship{
-    fn on_complete(&self, model:&mut GameModel, constructor_address:&BodyAddress)->(){
-        let construction_site = constructor_address.get_body(&model.galaxy);
-        if let Some(owner) = construction_site.get_owner(){
-            let mut result = self.clone();
-            result.owner = owner;
-            result.movement = Movement::Orbit(constructor_address.clone());
-            model.ships.push(result);
-        }
+    fn on_complete(&self, model:&mut GameModel, _:&BodyAddress)->(){
+        print!("completed");
+        let mut result = self.clone();
+        result.id = model.ships.len();
+        model.ships.push(result);
+    }
+    fn price(&self) -> i64{
+        return self.ship_price;
     }
 }
 
 #[derive(Clone)]
-enum Movement{
+pub enum Movement{
     Vector(Duration, Position, Velocity),
     Orbit(BodyAddress)
 }
 impl Movement{
-    fn calc_position(&self, time:&Duration, galaxy:&Vec<System>)->Position{
+    pub fn calc_position(&self, time:&Duration, galaxy:&Vec<System>)->Position{
         match self {
             &Movement::Vector(start_time, pos,ref vel) => pos+vel.calc_movement(&(time.clone() - start_time)),
             &Movement::Orbit(address) => {
@@ -61,7 +79,7 @@ impl Movement{
         }
     }
 }
-const ship_orbit_distance:Au = 0.000000000668449198;
+const ship_orbit_distance:Au = 0.000_000_000_668_449_198;
 #[derive(Clone)]
 struct Velocity{
     direction:f64, // rads

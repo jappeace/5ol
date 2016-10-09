@@ -51,15 +51,54 @@ impl Colony{
         result.owner = Some(owner);
         result
     }
+    pub fn construction_tick(&mut self, work_time:Duration) -> Vec<AConstructable>{
+        let not_done_yet = Vec::new();
+        if work_time < Duration::zero(){
+            return not_done_yet;
+        }
+        let construct = self.construction_queue.pop();
+        match construct {
+            Some(mut job) => if let Some(remainder) = job.work_on(work_time){
+                let mut result = self.construction_tick(remainder);
+                result.push(job.constructable);
+                result
+            }else{
+                self.construction_queue.push(job);
+                not_done_yet
+            },
+            _ => not_done_yet
+        }
+    }
 }
+
+pub type AConstructable = Arc<Constructable + Send + Sync>;
 #[derive(Clone)]
 pub struct Construction{
-    pub work_needed:Duration,
     pub progress:Duration,
-    pub on_complete:Arc<Constructable + Send + Sync> 
+    pub constructable: AConstructable 
+}
+impl Construction{
+    pub fn new(on_complete:AConstructable)-> Construction{
+        Construction{
+            progress:Duration::zero(),
+            constructable:on_complete
+        }
+    }
+    // work on construction, returns some duration if progress exceeds needed
+    pub fn work_on(&mut self, time_passed:Duration) -> Option<Duration>{
+        self.progress = self.progress + time_passed;
+        let needed = self.constructable.work_needed();
+        if needed < self.progress {
+            Some(self.progress - needed)
+        }else{
+            None
+        }
+    }
 }
 pub trait Constructable{
     fn on_complete(&self, model:&mut GameModel, contructor_address:&BodyAddress)->(){}
+    fn work_needed(&self) -> Duration{Duration::weeks(4)}
+    fn price(&self) -> i64;
 }
 #[derive(Clone)]
 pub struct Population{
