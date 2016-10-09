@@ -1,0 +1,54 @@
+* 50l
+
+This project is intended to be a space 4x game. Right
+now there is little to speak of in terms of game mechenics. Although the
+time mechanism is completed as is the basic orbit idea. 
+
+This game is implemented in Rust to get every little bit of performence
+out of the hardware, including paralization wherever it makes sense.
+
+** Ideas
+
+The main resources will be money and energy. money is a global constraint,
+but energy is local (although can be moved).
+
+Energy is mainly used to support buildings. But also to create fuel for
+ship (or depending on the engine is fuel). The idea is that energy will
+eventually run low, and the player really has to explore to find more.
+
+Then to build certain things you need to mine materials. I don't want to
+make to many types so I'm thinking of about 3 building materials (copper,
+iron, rare earth metals), then also several fuel sources such as (methane, oil)
+and carbon, which can act as building material and fuel.
+
+*** TODO Simple ship construction.
+*** TODO Ship navigation.
+**** let them fly trough the game (and stuff like drag a box interaction)
+*** TODO A simple AI.
+**** mainly to fight against
+*** TODO Combat.
+**** possible weapon types: rockets, lasers/energy, kinetic, mines, kamikaza strikes?
+*** TODO colonization.
+*** TODO import the galaxy (or generate it, probably import)
+*** TODO save games
+*** TODO research?
+**** Different engine types, chemical, pulse, ion
+**** Some kind of jump technology for later game? Maybe different kinds such as:
+***** Warp bubble engines, engines that move an area of space but are heavy/costly
+***** Wormholes, define 1 entrence/exit, to n-light years, but moving the exit/entrence is costly
+***** Lane engines, cheaper warp engines that can only follow certain routes
+
+** Architecture
+
+The graphics are rendered screen by screen with a state per screen.
+
+The game model is stored in an RwLock, every frame the state makes a copy of
+the model and then renders it. If the state wishes to make changes it can
+be send to the model access, which is a separate dedicated writing thread.
+The idea behind this is that certain writes should be atomic (such as the 
+time/resource update) and the best way to guarantee this is to just get the
+write lock during the entire calculation.
+
+** Special thanks to
+
+Aurora 4x for inspiring me.
