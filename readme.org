@@ -49,6 +49,10 @@ The idea behind this is that certain writes should be atomic (such as the
 time/resource update) and the best way to guarantee this is to just get the
 write lock during the entire calculation.
 
+** License
+
+Feel free to use this project in anyway you like conform the GPLv3.
+
 ** Special thanks to
 
 Aurora 4x for inspiring me.
