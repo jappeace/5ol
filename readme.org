@@ -21,7 +21,11 @@ make to many types so I'm thinking of about 3 building materials (copper,
 iron, rare earth metals), then also several fuel sources such as (methane, oil)
 and carbon, which can act as building material and fuel.
 
-*** TODO track objects...
+*** TODO track objects... Its really anoying right now to follow a planet
+Right now its sort of annoying to follow a planet (of for example you home
+province), this can be easily fixed by "locking" the camera to the
+planet position and releasing on movement.
+**** Make right click work for buttons
 *** TODO Ship navigation.
 **** let them fly trough the game (and stuff like drag a box interaction)
 *** TODO A simple AI.
@@ -32,12 +36,19 @@ and carbon, which can act as building material and fuel.
 *** TODO import the galaxy (or generate it, probably import)
 *** TODO save games
 *** TODO research?
+**** Perhaps resources should be "unlocked" during research,
+so that new players aren't swamped with stuff to do. Actually this is
+a nice thing about research, it unlocks stuff at a pace so you can take
+your time to explore new concepts. To fast research should be avoided.
 **** Different engine types, chemical, pulse, ion
 **** Some kind of jump technology for later game? Maybe different kinds such as:
 ***** Warp bubble engines, engines that move an area of space but are heavy/costly
 ***** Wormholes, define 1 entrence/exit, to n-light years, but moving the exit/entrence is costly
 ***** Lane engines, cheaper warp engines that can only follow certain routes
 
+*** TODO UI stuff
+- Drag across the map.
+- Revamp time controlls (at least show which are active).
 ** Architecture
 
 The graphics are rendered screen by screen with a state per screen.
