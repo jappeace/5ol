@@ -18,14 +18,14 @@
 // this file describes some geometric constructs, the main unit being position.
 // I wrote my own to use f64 instead of f32, simply because the entire milky
 // way sortoff fits in that if we use AU as a unit
-#[derive(Copy,Clone)]
+#[derive(Copy,Clone, PartialEq, Debug)]
 pub struct Position{
     // left = 0
     pub x:f64,
     // top = 0
     pub y:f64
 }
-use std::ops::{Add, Sub, Neg, Div, Mul};
+use std::ops::{Add, AddAssign, Sub, SubAssign, Neg, Div, Mul};
 impl Position{
     pub fn new(x:f64,y:f64) -> Position{
         Position{
@@ -58,6 +58,12 @@ impl Add for Position{
         Position{x:_rhs.x+self.x, y:_rhs.y+self.y}
     }
 }
+impl AddAssign for Position{
+    fn add_assign(&mut self, _rhs:Position){
+        self.x += _rhs.x;
+        self.y += _rhs.y;
+    }
+}
 impl Mul for Position{
     type Output = Position;
     fn mul(self, _rhs:Position) -> Position{
@@ -74,6 +80,12 @@ impl Sub for Position{
     type Output = Position;
     fn sub(self, _rhs: Position) -> Position{   
         Position{x:_rhs.x-self.x, y:_rhs.y-self.y}
+    }
+}
+impl SubAssign for Position{
+    fn sub_assign(&mut self, _rhs:Position){
+        self.x -= _rhs.x;
+        self.y -= _rhs.y;
     }
 }
 impl Neg for Position{

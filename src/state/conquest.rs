@@ -61,7 +61,7 @@ impl State for ConquestState{
         let time = model.time;
         let projection = self.camera.create_projection(&dimens);
         let visible = model.galaxy.iter()
-            .filter(|x| projection.is_visible(&x.used_space))
+            //.filter(|x| projection.is_visible(&x.used_space))
             .flat_map(|x| &x.bodies);
 
         use state::planet::PlanetState;
@@ -191,6 +191,7 @@ impl State for ConquestState{
                 D => self.camera.position.x -= move_step * size[0],
                 A => self.camera.position.x += move_step * size[0],
                 Space => self.updater.controll.toggle_pause(),
+                Return => self.camera.position = center,
                 _ => {}
             },
             Move(MouseCursor(x, y)) => self.camera.record_mouse([x,y]),

@@ -52,9 +52,13 @@ impl Camera{
     pub fn record_mouse(&mut self, position:Dimensions){
         let screensize = self.last_screensize;
         let projection = self.create_projection(&screensize);
-        self.mouse_position = projection.screen_to_world(Position::new(position[0], position[1]));
+
+        self.mouse_position = projection.screen_to_world(Position::new(position[0] - screensize[0]/2.0, position[1] - screensize[1]/2.0));
     }
     pub fn zoom(&mut self, direction:Direction){
+        let screen_size = self.last_screensize.clone();
+        let desired_fixed_point = self.create_projection(&screen_size)
+            .world_to_screen(self.mouse_position);
         match direction{
             Direction::In =>{
                 self.width /= zoom_factor;
@@ -66,6 +70,11 @@ impl Camera{
             }
 
         }
+        let fixed_move = self.create_projection(&screen_size)
+            .screen_to_world(desired_fixed_point);
+        let movement = fixed_move - self.mouse_position;
+        println!("move {}, mouse {}", movement, self.mouse_position);
+        self.position += movement * Position::new(-1.0,1.0);
     }
     pub fn create_projection<'a>(&mut self, screen_size:&'a Dimensions) -> Projection<'a>{
         self.last_screensize = screen_size.clone();
@@ -97,7 +106,7 @@ impl<'a> Projection<'a>{
     }
     pub fn screen_to_world(&self, position:Position)->Position{
         let ratio = self.get_screen_viewport_ratio();
-        position / ratio - self.view_port.center() / ratio
+        self.view_port.center() - position / ratio
     }
     pub fn world_to_screen(&self, position:Position)->Position{
         (position + self.view_port.center()) * self.get_screen_viewport_ratio()
@@ -112,5 +121,26 @@ impl<'a> Projection<'a>{
     }
     pub fn is_pos_visible(&self, pos:&Position) -> bool{
         self.view_port.contains(&pos)
+    }
+}
+
+#[cfg(test)]
+mod tests{
+    use camera::Camera;
+    use geometry::*;
+    #[test]
+    fn projection_idompotency(){
+        let mut cam = Camera::new(Position{x:3.0, y:54.2}, 4.0, 2.0);
+        let some_screensize = [100.0, 250.0];
+        let projection = cam.create_projection(&some_screensize);
+        let some_point = Position::new(49.0, -239.0);
+        assert_eq!(
+            projection.screen_to_world(projection.world_to_screen(some_point)),
+            some_point
+        );
+        assert_eq!(
+            projection.world_to_screen(projection.screen_to_world(some_point)),
+            some_point
+        )
     }
 }
