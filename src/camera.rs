@@ -22,16 +22,53 @@ use geometry::*;
 use model::galaxy::Au;
 use conrod::Dimensions;
 
+pub enum Direction{
+    In,
+    Out
+}
+const zoom_factor:f64 = 2.0;
+pub const move_step:f64 = 0.05;
 pub struct Camera{
+    last_screensize:Dimensions,
+    mouse_position:Position, // world coordinates
     pub position:Position, // position in world coordinates (AU)
     width:Au, // in astromical units
     height:Au,
 }
+const init_dimensions:Dimensions = [0.0,0.0];
 impl Camera{
     pub fn new(position:Position, width:Au, height:Au)->Camera{
-        Camera{position:position, width:width, height:height}
+        Camera{
+            position:position,
+            width:width,
+            height:height,
+            last_screensize:init_dimensions,
+            mouse_position:center
+        }
     }
-    pub fn create_projection<'a>(&self, screen_size:&'a Dimensions) -> Projection<'a>{
+    pub fn get_size(&self) -> Dimensions{
+        [self.width,self.height]
+    }
+    pub fn record_mouse(&mut self, position:Dimensions){
+        let screensize = self.last_screensize;
+        let projection = self.create_projection(&screensize);
+        self.mouse_position = projection.screen_to_world(Position::new(position[0], position[1]));
+    }
+    pub fn zoom(&mut self, direction:Direction){
+        match direction{
+            Direction::In =>{
+                self.width /= zoom_factor;
+                self.height /= zoom_factor;
+            }
+            Direction::Out =>{
+                self.width *= zoom_factor;
+                self.height *= zoom_factor;
+            }
+
+        }
+    }
+    pub fn create_projection<'a>(&mut self, screen_size:&'a Dimensions) -> Projection<'a>{
+        self.last_screensize = screen_size.clone();
         let two = 2.0;
         Projection{
             view_port:Rectangle{
@@ -54,10 +91,16 @@ pub struct Projection<'a>{
 
 }
 impl<'a> Projection<'a>{
-    pub fn world_to_screen(&self, position:&Position)->Position{
-        let factor = Position::new(self.screen_size[0], self.screen_size[1]) /
-            Position::new(self.view_port.width(), self.view_port.height());
-        (position.clone() + self.view_port.center()) * factor
+    pub fn get_screen_viewport_ratio(&self) -> Position{
+        Position::new(self.screen_size[0], self.screen_size[1]) /
+            Position::new(self.view_port.width(), self.view_port.height())
+    }
+    pub fn screen_to_world(&self, position:Position)->Position{
+        let ratio = self.get_screen_viewport_ratio();
+        position / ratio - self.view_port.center() / ratio
+    }
+    pub fn world_to_screen(&self, position:Position)->Position{
+        (position + self.view_port.center()) * self.get_screen_viewport_ratio()
     }
     pub fn is_visible(&self, disk:&Disk) -> bool{
         let (tl, tr, bl, br) = self.view_port.corners();

@@ -26,7 +26,7 @@ use geometry::*;
 use model::root::GameModel;
 use model::colony::*;
 use model::galaxy::*;
-use camera::Camera;
+use camera::{Camera, Direction, move_step};
 use async::pulser::Pulser;
 use async::logic_updater::Updater;
 use async::model_access::Change;
@@ -74,7 +74,7 @@ impl State for ConquestState{
                 }
                 Some(x) => x
             };
-            let position = projection.world_to_screen(&body.calc_position(&time));
+            let position = projection.world_to_screen(body.calc_position(&time));
             for _ in Button::new().w_h(10.0,10.0).x(position.x).y(position.y).set(view_id, ui){
                 return Some(Box::new(PlanetState::new(
                     ui.widget_id_generator(),
@@ -87,7 +87,7 @@ impl State for ConquestState{
         use conrod::Color;
         for ship in model.ships
             .iter()
-            .map(|x| (x, projection.world_to_screen(&x.movement.calc_position(&model.time, &model.galaxy))))
+            .map(|x| (x, projection.world_to_screen(x.movement.calc_position(&model.time, &model.galaxy))))
             {
                 println!("shippp! {}, ({},{})", ship.0.id, ship.1.x, ship.1.y);
                 Oval::fill([5.0,5.0])
@@ -182,15 +182,21 @@ impl State for ConquestState{
         use piston_window::Input::*;
         use piston_window::Button::*;
         use piston_window::keyboard::Key::*;
+        use piston_window::Motion::{MouseScroll,MouseCursor};
+        let size = self.camera.get_size();
         match input {
             Press(Keyboard(key)) => match key {
-                W => self.camera.position.y -= 0.1,
-                S => self.camera.position.y += 0.1,
-                D => self.camera.position.x -= 0.1,
-                A => self.camera.position.x += 0.1,
+                W => self.camera.position.y -= move_step * size[1],
+                S => self.camera.position.y += move_step * size[1],
+                D => self.camera.position.x -= move_step * size[0],
+                A => self.camera.position.x += move_step * size[0],
                 Space => self.updater.controll.toggle_pause(),
                 _ => {}
             },
+            Move(MouseCursor(x, y)) => self.camera.record_mouse([x,y]),
+            Move(MouseScroll(_, direction)) => self.camera.zoom(
+                if direction == 1.0 {Direction::In}else{Direction::Out}
+            ) ,
             _ => {}
         }
         None
