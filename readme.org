@@ -60,6 +60,20 @@ The idea behind this is that certain writes should be atomic (such as the
 time/resource update) and the best way to guarantee this is to just get the
 write lock during the entire calculation.
 
+*** use 64 bit value representations
+This allows a staggering amount of precision, and in Au it sort of fits the
+entire milky way for f64 without using heap based tricks. This allows
+for a crazy amount of zoom level which makes space feel really empty.
+
+Going to another star should feel like a massive journey. Using Au as unit
+allows for this, but it also allows for detailed space combat: The
+epsilon of an Au is 0.0332174001 millimeter. I don't intend to make the
+game *that* detailed, but I could...
+
+And yes I've considered that this is slower than f32 (or i32),
+but the fact it can perfectly model the entire milky way is just such a
+big pro that I don't care.
+
 ** License
 
 Feel free to use this project in anyway you like conform the GPLv3.
