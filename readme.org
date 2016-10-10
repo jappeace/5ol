@@ -21,7 +21,7 @@ make to many types so I'm thinking of about 3 building materials (copper,
 iron, rare earth metals), then also several fuel sources such as (methane, oil)
 and carbon, which can act as building material and fuel.
 
-*** TODO zooming
+*** TODO track objects...
 *** TODO Ship navigation.
 **** let them fly trough the game (and stuff like drag a box interaction)
 *** TODO A simple AI.
