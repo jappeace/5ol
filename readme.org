@@ -21,11 +21,6 @@ make to many types so I'm thinking of about 3 building materials (copper,
 iron, rare earth metals), then also several fuel sources such as (methane, oil)
 and carbon, which can act as building material and fuel.
 
-*** TODO track objects... Its really anoying right now to follow a planet
-Right now its sort of annoying to follow a planet (of for example you home
-province), this can be easily fixed by "locking" the camera to the
-planet position and releasing on movement.
-**** Make right click work for buttons
 *** TODO Ship navigation.
 **** let them fly trough the game (and stuff like drag a box interaction)
 *** TODO A simple AI.

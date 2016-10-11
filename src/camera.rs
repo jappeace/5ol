@@ -19,7 +19,7 @@
 // (au,au), should be rendered in (px,px)
 
 use geometry::*;
-use model::galaxy::Au;
+use model::galaxy::{Au, BodyAddress};
 use conrod::Dimensions;
 
 pub enum Direction{
@@ -34,6 +34,7 @@ pub struct Camera{
     pub position:Position, // position in world coordinates (AU)
     width:Au, // in astromical units
     height:Au,
+    pub track_body:Option<BodyAddress>
 }
 const init_dimensions:Dimensions = [0.0,0.0];
 impl Camera{
@@ -43,11 +44,15 @@ impl Camera{
             width:width,
             height:height,
             last_screensize:init_dimensions,
-            mouse_position:center
+            mouse_position:center,
+            track_body:None
         }
     }
     pub fn get_size(&self) -> Dimensions{
         [self.width,self.height]
+    }
+    pub fn stop_tracking(&mut self){
+        self.track_body = None;
     }
     pub fn record_mouse(&mut self, position:Dimensions){
         let screensize = self.last_screensize;

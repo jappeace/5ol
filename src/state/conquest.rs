@@ -42,6 +42,7 @@ pub struct ConquestState{
 impl State for ConquestState{
     fn enter(&mut self, _:Box<State>) -> StateChange{
         self.updater.start();
+        self.updater.controll.set_status(Status::Paused);
         self.pulser.start();
         None
     }
@@ -59,10 +60,17 @@ impl State for ConquestState{
             .set(self.ids.canvas_root, ui) ;
         let dimens = ui.window_dim();
         let time = model.time;
+
+        self.camera.position = self.camera.track_body.map_or(
+            self.camera.position,
+            |x| x.get_body(&model.galaxy).calc_position(&time) * Position::new(-1.0,-1.0)
+        );
+
         let projection = self.camera.create_projection(&dimens);
         let visible = model.galaxy.iter()
             //.filter(|x| projection.is_visible(&x.used_space))
             .flat_map(|x| &x.bodies);
+
 
         use state::planet::PlanetState;
         for body in visible{
@@ -74,8 +82,24 @@ impl State for ConquestState{
                 }
                 Some(x) => x
             };
-            let position = projection.world_to_screen(body.calc_position(&time));
-            for _ in Button::new().w_h(10.0,10.0).x(position.x).y(position.y).set(view_id, ui){
+            let body_position = body.calc_position(&time);
+            let position = projection.world_to_screen(body_position);
+            Oval::fill([10.0,10.0]).x(position.x).y(position.y).set(view_id, ui);
+            let mut should_return = false;
+            {
+                let input = ui.widget_input(view_id);
+                if let Some(ref mouse) = input.mouse(){
+                    let buttons = mouse.buttons;
+                    use conrod::input::state::mouse::ButtonPosition;
+                    if let ButtonPosition::Down(_, _) = *buttons.left(){
+                        should_return = true;
+                    }
+                    if let ButtonPosition::Down(_, _) = *buttons.right(){
+                        self.camera.track_body = Some(body.address);
+                    }
+                }
+            }
+            if should_return{
                 return Some(Box::new(PlanetState::new(
                     ui.widget_id_generator(),
                     body.address,
@@ -83,6 +107,7 @@ impl State for ConquestState{
                 )));
             }
         }
+
 
         use conrod::Color;
         for ship in model.ships
@@ -186,12 +211,27 @@ impl State for ConquestState{
         let size = self.camera.get_size();
         match input {
             Press(Keyboard(key)) => match key {
-                W => self.camera.position.y -= move_step * size[1],
-                S => self.camera.position.y += move_step * size[1],
-                D => self.camera.position.x -= move_step * size[0],
-                A => self.camera.position.x += move_step * size[0],
+                W =>{
+                    self.camera.position.y -= move_step * size[1];
+                    self.camera.stop_tracking();
+                },
+                S => {
+                    self.camera.position.y += move_step * size[1];
+                    self.camera.stop_tracking();
+                },
+                D =>{
+                    self.camera.position.x -= move_step * size[0];
+                    self.camera.stop_tracking();
+                },
+                A => {
+                    self.camera.position.x += move_step * size[0];
+                    self.camera.stop_tracking();
+                },
                 Space => self.updater.controll.toggle_pause(),
-                Return => self.camera.position = center,
+                Return => {
+                    self.camera.position = center;
+                    self.camera.stop_tracking();
+                },
                 _ => {}
             },
             Move(MouseCursor(x, y)) => self.camera.record_mouse([x,y]),

@@ -26,12 +26,22 @@ pub struct Position{
     pub y:f64
 }
 use std::ops::{Add, AddAssign, Sub, SubAssign, Neg, Div, Mul};
+use conrod::Dimensions;
 impl Position{
     pub fn new(x:f64,y:f64) -> Position{
         Position{
             x:x,
             y:y
         }
+    }
+    pub fn arr(dimension:Dimensions) -> Position{
+        Position::new(dimension[0], dimension[1])
+    }
+    pub fn i(size:isize) -> Position{
+        Position::new(size as f64,size as f64)
+    }
+    pub fn f(size:f64) -> Position{
+        Position::new(size,size)
     }
     fn dot(&self, with:Position) -> f64{
         self.length() * with.length() * self.angle_rad(with).cos()
