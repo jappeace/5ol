@@ -51,7 +51,7 @@ impl State for ConquestState{
     }
     fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
         use conrod::{color, widget, Colorable, Widget, Positionable, Labelable, Sizeable};
-        use conrod::widget::{Button, Oval};
+        use conrod::widget::{Oval};
         let model = self.updater.model_writer.copy_model();
         let canvas = widget::Canvas::new();
         canvas
@@ -68,7 +68,7 @@ impl State for ConquestState{
 
         let projection = self.camera.create_projection(&dimens);
         let visible = model.galaxy.iter()
-            //.filter(|x| projection.is_visible(&x.used_space))
+            .filter(|x| projection.is_visible(&x.used_space))
             .flat_map(|x| &x.bodies);
 
 
@@ -205,30 +205,33 @@ impl State for ConquestState{
     }
     fn input(&mut self, input:Input) -> StateChange{
         use piston_window::Input::*;
-        use piston_window::Button::*;
+        use piston_window::Button;
+        use piston_window::Button::Keyboard;
         use piston_window::keyboard::Key::*;
         use piston_window::Motion::{MouseScroll,MouseCursor};
-        let size = self.camera.get_size();
+        use conrod::input::MouseButton;
         match input {
             Press(Keyboard(key)) => match key {
                 W =>{
-                    self.camera.position.y -= move_step * size[1];
+                    self.camera.position.y -= move_step * self.camera.height;
                     self.camera.stop_tracking();
                 },
                 S => {
-                    self.camera.position.y += move_step * size[1];
+                    self.camera.position.y += move_step * self.camera.height;
                     self.camera.stop_tracking();
                 },
                 D =>{
-                    self.camera.position.x -= move_step * size[0];
+                    self.camera.position.x -= move_step * self.camera.width;
                     self.camera.stop_tracking();
                 },
                 A => {
-                    self.camera.position.x += move_step * size[0];
+                    self.camera.position.x += move_step * self.camera.width;
                     self.camera.stop_tracking();
                 },
                 Space => self.updater.controll.toggle_pause(),
                 Return => {
+                    self.camera.width = start_cam_width;
+                    self.camera.height = start_cam_height;
                     self.camera.position = center;
                     self.camera.stop_tracking();
                 },
@@ -236,9 +239,15 @@ impl State for ConquestState{
             },
             Move(MouseCursor(x, y)) => self.camera.record_mouse([x,y]),
             Move(MouseScroll(_, direction)) => self.camera.zoom(
-                if direction == 1.0 {Direction::In}else{Direction::Out}
-            ) ,
-            _ => {}
+                if direction == 1.0 {
+                    Direction::In
+                }else{
+                    Direction::Out
+                }
+            ),
+            Press(Button::Mouse(MouseButton::Left)) => {println!("start drag")},
+            Release(Button::Mouse(MouseButton::Left)) => {println!("stop dragging")},
+            x => {println!("{:?}", x)}
         }
         None
         }
@@ -250,6 +259,8 @@ impl State for ConquestState{
     }
 }
 
+const start_cam_width:Au = 2.0;
+const start_cam_height:Au = 2.0;
 impl ConquestState{
     pub fn new_game(generator: conrod::widget::id::Generator) -> ConquestState{
         let earth = StellarBody::new(
@@ -266,7 +277,13 @@ impl ConquestState{
             Duration::days(365),
             1.0
         );
-        ConquestState::new(generator, Camera::new(center,2.0,2.0), Arc::new(RwLock::new(GameModel::new(vec![
+        ConquestState::new(generator,
+            Camera::new(
+                center,
+                start_cam_width,
+                start_cam_height
+            ),
+            Arc::new(RwLock::new(GameModel::new(vec![
             System::new(
                 center,
                 vec![

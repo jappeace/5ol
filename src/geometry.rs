@@ -37,8 +37,11 @@ impl Position{
     pub fn arr(dimension:Dimensions) -> Position{
         Position::new(dimension[0], dimension[1])
     }
+    pub fn is(x:isize, y:isize) -> Position{
+        Position::new(x as f64,y as f64)
+    }
     pub fn i(size:isize) -> Position{
-        Position::new(size as f64,size as f64)
+        Position::is(size,size)
     }
     pub fn f(size:f64) -> Position{
         Position::new(size,size)
@@ -148,31 +151,31 @@ impl Rectangle{
         let two = 2.0;
         Position{
             x:(self.width()/two) + tl.x,
-            y: tl.y - (self.height()/two) // projection reasons
+            y: (self.height()/two) + tl.y
         }
     }
     pub fn tl(&self) -> Position{
         Position{
             x: if self.one.x < self.two.x {self.one.x} else {self.two.x},
-            y: if self.one.y > self.two.y {self.one.y} else {self.two.y}
+            y: if self.one.y < self.two.y {self.one.y} else {self.two.y}
         }
     }
     pub fn tr(&self) -> Position{
         Position{
             x: if self.one.x > self.two.x {self.one.x} else {self.two.x},
-            y: if self.one.y > self.two.y {self.one.y} else {self.two.y}
+            y: if self.one.y < self.two.y {self.one.y} else {self.two.y}
         }
     }
     pub fn br(&self) -> Position{
         Position{
             x: if self.one.x > self.two.x {self.one.x} else {self.two.x},
-            y: if self.one.y < self.two.y {self.one.y} else {self.two.y}
+            y: if self.one.y > self.two.y {self.one.y} else {self.two.y}
         }
     }
     pub fn bl(&self) -> Position{
         Position{
             x: if self.one.x < self.two.x {self.one.x} else {self.two.x},
-            y: if self.one.y < self.two.y {self.one.y} else {self.two.y}
+            y: if self.one.y > self.two.y {self.one.y} else {self.two.y}
         }
     }
     pub fn corners(&self) -> (Position, Position, Position, Position){
@@ -181,3 +184,32 @@ impl Rectangle{
 }
 
 pub const center:Position = Position{x:0.0,y:0.0};
+
+#[cfg(test)]
+mod tests{
+    use geometry::{Position,Rectangle};
+    #[test]
+    fn rectangle_contains(){
+        let point = Position::i(6);
+        let rectangle = Rectangle{
+            one:Position::i(5),
+            two:Position::i(7),
+        };
+        println!("tl {}", rectangle.tl());
+        println!("br {}", rectangle.br());
+        assert!(rectangle.contains(&point));
+    }
+    #[test]
+    fn rectangle_corners(){
+        let tl = Position::i(5);
+        let br = Position::i(7);
+        let rectangle = Rectangle{
+            one:tl,
+            two:br,
+        };
+        assert_eq!(tl, rectangle.tl());
+        assert_eq!(br, rectangle.br());
+        assert_eq!(Position::is(7,5), rectangle.tr());
+        assert_eq!(Position::is(5,7), rectangle.bl());
+    }
+}

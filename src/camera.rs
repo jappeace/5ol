@@ -32,8 +32,8 @@ pub struct Camera{
     last_screensize:Dimensions,
     mouse_position:Position, // world coordinates
     pub position:Position, // position in world coordinates (AU)
-    width:Au, // in astromical units
-    height:Au,
+    pub width:Au, // in astromical units
+    pub height:Au,
     pub track_body:Option<BodyAddress>
 }
 const init_dimensions:Dimensions = [0.0,0.0];
@@ -47,9 +47,6 @@ impl Camera{
             mouse_position:center,
             track_body:None
         }
-    }
-    pub fn get_size(&self) -> Dimensions{
-        [self.width,self.height]
     }
     pub fn stop_tracking(&mut self){
         self.track_body = None;
@@ -135,10 +132,10 @@ mod tests{
     use geometry::*;
     #[test]
     fn projection_idompotency(){
-        let mut cam = Camera::new(Position{x:3.0, y:54.2}, 4.0, 2.0);
-        let some_screensize = [100.0, 250.0];
+        let mut cam = Camera::new(Position{x:3.0, y:59.3}, 4.0, 2.1);
+        let some_screensize = [100.0, 250.3]; // floating point may make epsilon differences
         let projection = cam.create_projection(&some_screensize);
-        let some_point = Position::new(49.0, -239.0);
+        let some_point = Position::new(49.0, -239.5);
         assert_eq!(
             projection.screen_to_world(projection.world_to_screen(some_point)),
             some_point
