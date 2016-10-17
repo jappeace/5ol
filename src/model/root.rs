@@ -18,7 +18,7 @@
 // This is the root model or model abstract, the root of the state of the program
 
 use chrono::Duration;
-use model::galaxy::{System, BodyAddress};
+use model::galaxy::{System, BodyAddress, Galaxy};
 use model::ship::Ship;
 use std::usize;
 
@@ -27,7 +27,7 @@ use std::usize;
 // between "states".
 #[derive(Clone)]
 pub struct GameModel{
-    pub galaxy:Vec<System>,
+    pub galaxy:Galaxy,
     pub players:Vec<Player>,
     pub ships:Vec<Ship>,
     pub time:Duration
@@ -45,7 +45,7 @@ impl GameModel{
             newsys
         }).collect();
         GameModel{
-            galaxy:addressed,
+            galaxy:Galaxy::new(addressed),
             players:vec![Player{
                 money:0,
                 id:0

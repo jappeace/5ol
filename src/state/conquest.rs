@@ -63,11 +63,11 @@ impl State for ConquestState{
 
         self.camera.position = self.camera.track_body.map_or(
             self.camera.position,
-            |x| x.get_body(&model.galaxy).calc_position(&time) * Position::new(-1.0,-1.0)
+            |x| model.galaxy[x].calc_position(&time) * Position::new(-1.0,-1.0)
         );
 
         let projection = self.camera.create_projection(&dimens);
-        let visible = model.galaxy.iter()
+        let visible = model.galaxy.systems.iter()
             .filter(|x| projection.is_visible(&x.used_space))
             .flat_map(|x| &x.bodies);
 
@@ -112,9 +112,17 @@ impl State for ConquestState{
         use conrod::Color;
         for ship in model.ships
             .iter()
-            .map(|x| (x, projection.world_to_screen(x.movement.calc_position(&model.time, &model.galaxy))))
+            .filter_map(|x|{
+                let position = x.movement.calc_position(&model.time, &model.galaxy);
+                if projection.is_pos_visible(&position){
+                    Some((x, projection.world_to_screen(position)))
+                }else{
+                    println!("filtered {}, viewport {}", position, projection.view_port);
+                    None
+                }
+            })
             {
-                println!("shippp! {}, ({},{})", ship.0.id, ship.1.x, ship.1.y);
+                println!("shippp! {}, pos {} view {}", ship.0.id, ship.1, projection.view_port);
                 Oval::fill([5.0,5.0])
                     .x(ship.1.x).y(ship.1.y).color(Color::Rgba(0.0,0.0,0.0,1.0))
                     .set(ship.0.view.map_or_else(
@@ -247,7 +255,7 @@ impl State for ConquestState{
             ),
             Press(Button::Mouse(MouseButton::Left)) => {println!("start drag")},
             Release(Button::Mouse(MouseButton::Left)) => {println!("stop dragging")},
-            x => {println!("{:?}", x)}
+            _ => {}
         }
         None
         }
@@ -263,20 +271,7 @@ const start_cam_width:Au = 2.0;
 const start_cam_height:Au = 2.0;
 impl ConquestState{
     pub fn new_game(generator: conrod::widget::id::Generator) -> ConquestState{
-        let earth = StellarBody::new(
-            BodyClass::Rocky(
-                Colony::new_inhabited(
-                    0,
-                    1.0,
-                    Population::new(
-                        7456000000
-                    )
-                )
-            ),
-            "earth",
-            Duration::days(365),
-            1.0
-        );
+        let earth = StellarBody::new_earthlike("earth");
         ConquestState::new(generator,
             Camera::new(
                 center,

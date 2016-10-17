@@ -97,7 +97,7 @@ impl Camera{
     }
 }
 pub struct Projection<'a>{
-    view_port:Rectangle,
+    pub view_port:Rectangle,
     screen_size:&'a Dimensions
 
 }
@@ -122,7 +122,7 @@ impl<'a> Projection<'a>{
             disk.contains([bl, tl])
     }
     pub fn is_pos_visible(&self, pos:&Position) -> bool{
-        self.view_port.contains(&pos)
+        self.view_port.contains(pos)
     }
 }
 
@@ -144,5 +144,13 @@ mod tests{
             projection.world_to_screen(projection.screen_to_world(some_point)),
             some_point
         )
+    }
+    #[test]
+    #[ignore]
+    fn ships_should_be_visible_in_start_location(){
+        // there is an annoying filter bug where ships are only sometimes
+        // visible on the lower zoom levels
+        // its really hard to test ingame so this unit test does it
+        // programaticially
     }
 }

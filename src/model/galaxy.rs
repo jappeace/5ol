@@ -66,6 +66,24 @@ impl StellarBody{
             address:unkown_address,
         }
     }
+    // create a stellar body with properties of earth (in game)
+    pub fn new_earthlike(name:&'static str) -> StellarBody{
+        use model::colony::*;
+        StellarBody::new(
+            BodyClass::Rocky(
+                Colony::new_inhabited(
+                    0,
+                    1.0,
+                    Population::new(
+                        7456000000
+                    )
+                )
+            ),
+            name,
+            Duration::days(365),
+            1.0
+        )
+    }
     pub fn create_single_star(name:&'static str)->StellarBody{
         StellarBody::new(BodyClass::Star, name, Duration::zero(), 0.0)
     }
@@ -102,14 +120,6 @@ pub struct BodyAddress{
     pub planet_id:usize,
     // TODO: moon id? maybe as an option?
 }
-impl BodyAddress{
-    pub fn get_body<'a>(&self, galaxy:&'a Vec<System>) -> &'a StellarBody{
-        &galaxy[self.system_id].bodies[self.planet_id]
-    }
-    pub fn set_body(&self, galaxy:&mut Vec<System>, change_to:StellarBody){
-        galaxy[self.system_id].bodies[self.planet_id] = change_to;
-    }
-}
 const unkown_address:BodyAddress = BodyAddress{system_id:usize::MAX,planet_id:usize::MAX};
 
 #[derive(Clone)]
@@ -134,5 +144,30 @@ impl System{
             },
             bodies:bodies
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct Galaxy{
+    pub systems:Vec<System>
+}
+impl Galaxy{
+    pub fn new(systems:Vec<System>) -> Galaxy{
+        Galaxy{
+            systems:systems
+        }
+    }
+}
+use std::ops::{Index,IndexMut};
+impl Index<BodyAddress> for Galaxy {
+    type Output = StellarBody;
+    fn index(&self, index: BodyAddress) -> &Self::Output{
+        &self.systems[index.system_id].bodies[index.planet_id]
+    }
+}
+
+impl IndexMut<BodyAddress> for Galaxy {
+    fn index_mut<'a>(&'a mut self, index: BodyAddress) -> &'a mut StellarBody {
+        &mut self.systems[index.system_id].bodies[index.planet_id]
     }
 }

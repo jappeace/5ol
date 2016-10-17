@@ -19,7 +19,7 @@
 use petgraph::graph::NodeIndex;
 
 use geometry::Position;
-use model::galaxy::{calc_orbit, BodyAddress, System, Au};
+use model::galaxy::*;
 use model::colony::Constructable;
 use model::root::GameModel;
 use chrono::Duration;
@@ -66,11 +66,11 @@ pub enum Movement{
     Orbit(Duration, BodyAddress)
 }
 impl Movement{
-    pub fn calc_position(&self, time:&Duration, galaxy:&Vec<System>)->Position{
+    pub fn calc_position(&self, time:&Duration, galaxy:&Galaxy)->Position{
         match self {
             &Movement::Vector(start_time, pos,ref vel) => pos+vel.calc_movement(&(time.clone() - start_time)),
             &Movement::Orbit(start_time, address) => {
-                let body = address.get_body(galaxy);
+                let body = &galaxy[address];
                 body.calc_position(time) + calc_orbit(
                     &(Duration::hours(5) + Duration::minutes(5) + Duration::seconds(5) + Duration::milliseconds(5)),
                     ship_orbit_distance,

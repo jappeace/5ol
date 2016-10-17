@@ -85,22 +85,28 @@ impl ModelAccess{
     }
     fn write(game_model:Arc<RwLock<GameModel>>, change:&Change){
         match *change{
+
             Change::BodyViewID(address, changeto) => {
-                let mut body = address.get_body(&game_model.read().expect("it").galaxy).clone();
+                let mut body = &mut game_model.write().expect("it").galaxy[address];
                 body.view_id = changeto;
-                address.set_body(&mut game_model.write().expect("it").galaxy, body);
             }       
+
             Change::ShipViewID(id,changeto) =>
                 game_model.write().expect("it").ships[id].view = changeto,
+
             Change::Construct(ref constructable, address) =>{
-                let mut body = address.get_body(&game_model.read().expect("it").galaxy).clone();
-                body.class = if let BodyClass::Rocky(mut colony) = body.class{
+                let mut body = &mut game_model.write().expect("it").galaxy[address];
+                let class = body.class.clone();
+                body.class = if let BodyClass::Rocky(mut colony) = class {
                     colony.construction_queue.push(Construction::new(constructable.clone()));
                     BodyClass::Rocky(colony)
-                }else{body.class};
-                address.set_body(&mut game_model.write().expect("it").galaxy, body);
+                }else{
+                    class
+                };
             }
+
             Change::Time(increase) => ModelAccess::resource_tick(game_model.write().expect("it"), increase),
+
             Change::StopModifications => {
                 panic!("done"); // works best
             }
@@ -108,7 +114,7 @@ impl ModelAccess{
     }
     fn resource_tick(mut game_model:RwLockWriteGuard<GameModel>, interval:Duration){
         game_model.time = game_model.time + interval;
-        let changes:Vec<(BodyAddress,i64,Option<(usize,i64)>)> = game_model.galaxy.iter()
+        let changes:Vec<(BodyAddress,i64,Option<(usize,i64)>)> = game_model.galaxy.systems.iter()
             .flat_map(|x| x.bodies.iter().filter_map(|cur| {
                     match &cur.class {
                         &BodyClass::Rocky(ref h) => {
@@ -132,21 +138,21 @@ impl ModelAccess{
             ).collect();
         let mut constructions:Vec<(BodyAddress, AConstructable)> = Vec::new();
         for change in changes{
-            let mut newbody = change.0.get_body(&game_model.galaxy).clone();
-            newbody.class = if let BodyClass::Rocky(mut habitat) = newbody.class.clone(){
+            let mut subject = game_model.galaxy[change.0].clone();
+            subject.class = if let BodyClass::Rocky(mut habitat) = subject.class.clone(){
                 change.2.map(|x| game_model.players[x.0].money += x.1);
                 habitat.population = habitat.population.map(|x| {
                     x.change_headcount(change.1)  
                 });
                 constructions.append(
                     &mut habitat.construction_tick(interval)
-                        .into_iter().map(|x| (newbody.address, x)).collect()
+                        .into_iter().map(|x| (subject.address, x)).collect()
                 );
                 BodyClass::Rocky(habitat)
             }else{
-                newbody.class
+                subject.class
             };
-            change.0.set_body(&mut game_model.galaxy, newbody);
+            game_model.galaxy[change.0] = subject;
         }
         for construction in constructions{
             construction.1.on_complete(&mut game_model, &construction.0);

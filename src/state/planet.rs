@@ -59,7 +59,7 @@ impl State for PlanetState{
     fn update(&mut self, ui:&mut conrod::UiCell) -> StateChange{
         // Construct our main `Canvas` tree.
         widget::Canvas::new().color(color::BLACK).set(self.ids.canvas_root, ui);
-        let body = self.subject.get_body(&self.model_access.read_lock_model().galaxy).clone();
+        let body = self.model_access.read_lock_model().galaxy[self.subject].clone(); // clone to descope lock
         let bodyinfo = match &body.class{
             &BodyClass::Rocky(ref habitat) =>{
                 let head_count = if let Some(ref pop) = habitat.population {

@@ -182,7 +182,11 @@ impl Rectangle{
         (self.tl(), self.tr(), self.bl(), self.br())
     }
 }
-
+impl fmt::Display for Rectangle{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "R({}, {})", self.tl(), self.br())
+    }
+}
 pub const center:Position = Position{x:0.0,y:0.0};
 
 #[cfg(test)]
@@ -213,3 +217,4 @@ mod tests{
         assert_eq!(Position::is(5,7), rectangle.bl());
     }
 }
+ 
