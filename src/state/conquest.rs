@@ -63,7 +63,7 @@ impl State for ConquestState{
 
         self.camera.position = self.camera.track_body.map_or(
             self.camera.position,
-            |x| model.galaxy[x].calc_position(&time) * Position::new(-1.0,-1.0)
+            |x| model.galaxy[x].calc_position(&time)
         );
 
         let projection = self.camera.create_projection(&dimens);
