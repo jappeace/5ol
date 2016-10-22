@@ -22,12 +22,20 @@ use geometry::*;
 use model::galaxy::{Au, BodyAddress};
 use conrod::Dimensions;
 
-pub enum Direction{
+pub enum ZoomDirection{
     In,
     Out
 }
+pub enum MoveDirection{
+    Left,
+    Right,
+    Up,
+    Down
+}
 const zoom_factor:f64 = 2.0;
-pub const move_step:f64 = 0.05;
+const move_step:f64 = 0.05;
+pub const start_cam_width:Au = 2.0;
+pub const start_cam_height:Au = 2.0;
 pub struct Camera{
     last_screensize:Dimensions,
     mouse_position:Position, // world coordinates
@@ -57,16 +65,28 @@ impl Camera{
 
         self.mouse_position = projection.screen_to_world(Position::new(position[0] - screensize[0]/2.0, position[1] - screensize[1]/2.0));
     }
-    pub fn zoom(&mut self, direction:Direction){
+    pub fn translate(&mut self, direction:MoveDirection){
+        let zero = 0.0;
+        let movement = match direction{
+            MoveDirection::Left =>  Position::new(move_step, zero),
+            MoveDirection::Right => Position::new(-move_step, zero),
+            MoveDirection::Up => Position::new(zero, -move_step),
+            MoveDirection::Down => Position::new(zero, move_step)
+        };
+        let scaled_movement = movement * Position::new(self.width, self.height);
+        self.position += scaled_movement;
+        self.stop_tracking();
+    }
+    pub fn zoom(&mut self, direction:ZoomDirection){
         let screen_size = self.last_screensize.clone();
         let desired_fixed_point = self.create_projection(&screen_size)
             .world_to_screen(self.mouse_position);
         match direction{
-            Direction::In =>{
+            ZoomDirection::In =>{
                 self.width /= zoom_factor;
                 self.height /= zoom_factor;
             }
-            Direction::Out =>{
+            ZoomDirection::Out =>{
                 self.width *= zoom_factor;
                 self.height *= zoom_factor;
             }
@@ -108,10 +128,10 @@ impl<'a> Projection<'a>{
     }
     pub fn screen_to_world(&self, position:Position)->Position{
         let ratio = self.get_screen_viewport_ratio();
-        self.view_port.center() - position / ratio
+        (position) / ratio - self.view_port.center()
     }
     pub fn world_to_screen(&self, position:Position)->Position{
-        (position + self.view_port.center()) * self.get_screen_viewport_ratio()
+        (position - self.view_port.center()) * self.get_screen_viewport_ratio()
     }
     pub fn is_visible(&self, disk:&Disk) -> bool{
         let (tl, tr, bl, br) = self.view_port.corners();
@@ -122,13 +142,14 @@ impl<'a> Projection<'a>{
             disk.contains([bl, tl])
     }
     pub fn is_pos_visible(&self, pos:&Position) -> bool{
-        self.view_port.contains(pos)
+        let result = self.view_port.contains(pos);
+        result
     }
 }
 
 #[cfg(test)]
 mod tests{
-    use camera::Camera;
+    use camera::*;
     use geometry::*;
     #[test]
     fn projection_idompotency(){
@@ -146,11 +167,44 @@ mod tests{
         )
     }
     #[test]
-    #[ignore]
     fn ships_should_be_visible_in_start_location(){
+        use model::galaxy::*;
+        use model::root::*;
+        use model::ship::*;
+        use chrono::Duration;
         // there is an annoying filter bug where ships are only sometimes
         // visible on the lower zoom levels
         // its really hard to test ingame so this unit test does it
         // programaticially
+        let gamemodel = {
+            let ship = {
+                let mut s = Ship::new(0,0,BodyAddress{system_id:0,planet_id:0});
+                s.id = 0;
+                s
+            };
+            let mut model = GameModel::new(vec![
+                System::new(center, vec![StellarBody::new_earthlike("earth")])
+            ]);   
+            model.ships = vec![ship];
+            model
+        };
+        let mut camera = Camera::new(
+            center,
+            start_cam_width,
+            start_cam_height
+        );
+        let screensize = [300.0, 600.0];
+        let projection = camera.create_projection(&screensize);
+
+        let some_visible_days = [45,135,215,305, 345];
+        for day in some_visible_days.iter(){
+            let position = gamemodel.ships[0].movement.calc_position(
+                &Duration::days(*day), &gamemodel.galaxy
+            );
+            println!("position {} for day {}", position, day);
+            assert!(
+                projection.is_pos_visible(&position)
+            )
+        }
     }
 }

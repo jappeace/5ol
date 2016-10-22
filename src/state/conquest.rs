@@ -26,7 +26,7 @@ use geometry::*;
 use model::root::GameModel;
 use model::colony::*;
 use model::galaxy::*;
-use camera::{Camera, Direction, move_step};
+use camera::*;
 use async::pulser::Pulser;
 use async::logic_updater::Updater;
 use async::model_access::Change;
@@ -115,6 +115,7 @@ impl State for ConquestState{
             .filter_map(|x|{
                 let position = x.movement.calc_position(&model.time, &model.galaxy);
                 if projection.is_pos_visible(&position){
+                    println!("shippp!  {}, viewport {}", position, projection.view_port);
                     Some((x, projection.world_to_screen(position)))
                 }else{
                     println!("filtered {}, viewport {}", position, projection.view_port);
@@ -122,7 +123,6 @@ impl State for ConquestState{
                 }
             })
             {
-                println!("shippp! {}, pos {} view {}", ship.0.id, ship.1, projection.view_port);
                 Oval::fill([5.0,5.0])
                     .x(ship.1.x).y(ship.1.y).color(Color::Rgba(0.0,0.0,0.0,1.0))
                     .set(ship.0.view.map_or_else(
@@ -220,22 +220,10 @@ impl State for ConquestState{
         use conrod::input::MouseButton;
         match input {
             Press(Keyboard(key)) => match key {
-                W =>{
-                    self.camera.position.y -= move_step * self.camera.height;
-                    self.camera.stop_tracking();
-                },
-                S => {
-                    self.camera.position.y += move_step * self.camera.height;
-                    self.camera.stop_tracking();
-                },
-                D =>{
-                    self.camera.position.x -= move_step * self.camera.width;
-                    self.camera.stop_tracking();
-                },
-                A => {
-                    self.camera.position.x += move_step * self.camera.width;
-                    self.camera.stop_tracking();
-                },
+                W => self.camera.translate(MoveDirection::Up),
+                S => self.camera.translate(MoveDirection::Down),
+                A => self.camera.translate(MoveDirection::Left),
+                D => self.camera.translate(MoveDirection::Right),
                 Space => self.updater.controll.toggle_pause(),
                 Return => {
                     self.camera.width = start_cam_width;
@@ -248,9 +236,9 @@ impl State for ConquestState{
             Move(MouseCursor(x, y)) => self.camera.record_mouse([x,y]),
             Move(MouseScroll(_, direction)) => self.camera.zoom(
                 if direction == 1.0 {
-                    Direction::In
+                    ZoomDirection::In
                 }else{
-                    Direction::Out
+                    ZoomDirection::Out
                 }
             ),
             Press(Button::Mouse(MouseButton::Left)) => {println!("start drag")},
@@ -267,8 +255,6 @@ impl State for ConquestState{
     }
 }
 
-const start_cam_width:Au = 2.0;
-const start_cam_height:Au = 2.0;
 impl ConquestState{
     pub fn new_game(generator: conrod::widget::id::Generator) -> ConquestState{
         let earth = StellarBody::new_earthlike("earth");
