@@ -20,6 +20,7 @@
 use state::state_machine::{State, StateChange, StateEvent};
 use piston_window::Input;
 use conrod;
+use conrod::Dimensions;
 use chrono::Duration;
 
 use geometry::*;
@@ -38,6 +39,8 @@ pub struct ConquestState{
     camera:Camera,
     updater:Updater,
     pulser:Pulser,
+    last_mouse_position:Position,
+    last_screen_size:Dimensions
 }
 impl State for ConquestState{
     fn enter(&mut self, _:Box<State>) -> StateChange{
@@ -52,13 +55,13 @@ impl State for ConquestState{
     fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
         use conrod::{color, widget, Colorable, Widget, Positionable, Labelable, Sizeable};
         use conrod::widget::{Oval};
+        self.last_screen_size = ui.window_dim();
         let model = self.updater.model_writer.copy_model();
         let canvas = widget::Canvas::new();
         canvas
             .color(color::BLUE)
             .crop_kids()
             .set(self.ids.canvas_root, ui) ;
-        let dimens = ui.window_dim();
         let time = model.time;
 
         self.camera.position = self.camera.track_body.map_or(
@@ -66,7 +69,7 @@ impl State for ConquestState{
             |x| model.galaxy[x].calc_position(&time)
         );
 
-        let projection = self.camera.create_projection(&dimens);
+        let projection = self.camera.create_projection(self.last_screen_size);
         let visible = model.galaxy.systems.iter()
             .filter(|x| projection.is_visible(&x.used_space))
             .flat_map(|x| &x.bodies);
@@ -233,13 +236,15 @@ impl State for ConquestState{
                 },
                 _ => {}
             },
-            Move(MouseCursor(x, y)) => self.camera.record_mouse([x,y]),
+            Move(MouseCursor(x, y)) => self.last_mouse_position = Position::new(x,y),
             Move(MouseScroll(_, direction)) => self.camera.zoom(
+                self.last_screen_size,
                 if direction == 1.0 {
                     ZoomDirection::In
                 }else{
                     ZoomDirection::Out
-                }
+                },
+                self.last_mouse_position
             ),
             Press(Button::Mouse(MouseButton::Left)) => {println!("start drag")},
             Release(Button::Mouse(MouseButton::Left)) => {println!("stop dragging")},
@@ -308,10 +313,13 @@ impl ConquestState{
             ids:Ids::new(generator),
             camera:start_cam,
             updater:Updater::new(start_model, Duration::days),
-            pulser:Pulser::new(StateEvent::Idle)
+            pulser:Pulser::new(StateEvent::Idle),
+            last_mouse_position:center,
+            last_screen_size:init_dimensions
         }
     }
 }
+const init_dimensions:Dimensions = [0.0,0.0];
 
 widget_ids! {
     Ids {

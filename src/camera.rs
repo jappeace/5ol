@@ -37,33 +37,22 @@ const move_step:f64 = 0.05;
 pub const start_cam_width:Au = 2.0;
 pub const start_cam_height:Au = 2.0;
 pub struct Camera{
-    last_screensize:Dimensions,
-    mouse_position:Position, // world coordinates
     pub position:Position, // position in world coordinates (AU)
     pub width:Au, // in astromical units
     pub height:Au,
     pub track_body:Option<BodyAddress>
 }
-const init_dimensions:Dimensions = [0.0,0.0];
 impl Camera{
     pub fn new(position:Position, width:Au, height:Au)->Camera{
         Camera{
             position:position,
             width:width,
             height:height,
-            last_screensize:init_dimensions,
-            mouse_position:center,
             track_body:None
         }
     }
     pub fn stop_tracking(&mut self){
         self.track_body = None;
-    }
-    pub fn record_mouse(&mut self, position:Dimensions){
-        let screensize = self.last_screensize;
-        let projection = self.create_projection(&screensize);
-
-        self.mouse_position = projection.screen_to_world(Position::new(position[0] - screensize[0]/2.0, position[1] - screensize[1]/2.0));
     }
     pub fn translate(&mut self, direction:MoveDirection){
         let zero = 0.0;
@@ -77,10 +66,12 @@ impl Camera{
         self.position += scaled_movement;
         self.stop_tracking();
     }
-    pub fn zoom(&mut self, direction:ZoomDirection){
-        let screen_size = self.last_screensize.clone();
-        let desired_fixed_point = self.create_projection(&screen_size)
-            .world_to_screen(self.mouse_position);
+    pub fn zoom(&mut self, screen_size:Dimensions, direction:ZoomDirection, mouse_position:Position){
+
+        let mouse = mouse_position - (Position::arr(screen_size) / Position::i(2));
+        let desired_fixed_point = self.create_projection(screen_size)
+            .screen_to_world(mouse);
+
         match direction{
             ZoomDirection::In =>{
                 self.width /= zoom_factor;
@@ -92,14 +83,15 @@ impl Camera{
             }
 
         }
-        let fixed_move = self.create_projection(&screen_size)
-            .screen_to_world(desired_fixed_point);
-        let movement = fixed_move - self.mouse_position;
-        println!("move {}, mouse {}", movement, self.mouse_position);
-        self.position += movement * Position::new(-1.0,1.0);
+
+        let fixed_move = self.create_projection(screen_size)
+            .screen_to_world(mouse);
+        let correction_movement = fixed_move - desired_fixed_point;
+
+        println!("move {}, mouse {}", correction_movement, desired_fixed_point);
+        self.position += correction_movement * Position::new(-1.0,1.0);
     }
-    pub fn create_projection<'a>(&mut self, screen_size:&'a Dimensions) -> Projection<'a>{
-        self.last_screensize = screen_size.clone();
+    pub fn create_projection(&self, screen_size: Dimensions) -> Projection{
         let two = 2.0;
         Projection{
             view_port:Rectangle{
@@ -116,12 +108,12 @@ impl Camera{
         }
     }
 }
-pub struct Projection<'a>{
+pub struct Projection{
     pub view_port:Rectangle,
-    screen_size:&'a Dimensions
+    screen_size:Dimensions
 
 }
-impl<'a> Projection<'a>{
+impl Projection{
     pub fn get_screen_viewport_ratio(&self) -> Position{
         Position::new(self.screen_size[0], self.screen_size[1]) /
             Position::new(self.view_port.width(), self.view_port.height())
