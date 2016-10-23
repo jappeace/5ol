@@ -68,10 +68,9 @@ impl State for ConquestState{
 
         if let Some(drag_start) = self.drag_mouse_start{
             let rect = Rectangle{one:drag_start, two:self.last_mouse_position};
-            let tl = rect.center();
+            let corner = rect.center() - Position::arr(self.last_screen_size) / Position::i(2);
             conrod::widget::Rectangle::outline([rect.width(), rect.height()])
-                .x(tl.x - self.last_screen_size[0]/2.0).y(-tl.y + self.last_screen_size[1]/2.0).set(self.ids.rect_select, ui);
-            
+                .x(-corner.x).y(corner.y).set(self.ids.rect_select, ui);
         }
 
         self.camera.position = self.camera.track_body.map_or(
