@@ -40,6 +40,7 @@ pub struct ConquestState{
     updater:Updater,
     pulser:Pulser,
     last_mouse_position:Position,
+    drag_mouse_start:Option<Position>,
     last_screen_size:Dimensions
 }
 impl State for ConquestState{
@@ -55,6 +56,13 @@ impl State for ConquestState{
     fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
         use conrod::{color, widget, Colorable, Widget, Positionable, Labelable, Sizeable};
         use conrod::widget::{Oval};
+        if let Some(drag_start) = self.drag_mouse_start{
+            let rect = Rectangle{one:drag_start, two:self.last_mouse_position};
+            let tl = rect.tl();
+            conrod::widget::Rectangle::outline([rect.width(), rect.height()])
+                .x(tl.x).y(tl.y).set(self.ids.rect_select, ui);
+            
+        }
         self.last_screen_size = ui.window_dim();
         let model = self.updater.model_writer.copy_model();
         let canvas = widget::Canvas::new();
@@ -246,8 +254,8 @@ impl State for ConquestState{
                 },
                 self.last_mouse_position
             ),
-            Press(Button::Mouse(MouseButton::Left)) => {println!("start drag")},
-            Release(Button::Mouse(MouseButton::Left)) => {println!("stop dragging")},
+            Press(Button::Mouse(MouseButton::Left)) => {self.drag_mouse_start = Some(self.last_mouse_position)},
+            Release(Button::Mouse(MouseButton::Left)) => {self.drag_mouse_start = None},
             _ => {}
         }
         None
@@ -315,6 +323,7 @@ impl ConquestState{
             updater:Updater::new(start_model, Duration::days),
             pulser:Pulser::new(StateEvent::Idle),
             last_mouse_position:center,
+            drag_mouse_start:None,
             last_screen_size:init_dimensions
         }
     }
@@ -337,5 +346,6 @@ widget_ids! {
         button_granu_seconds,
         button_granu_milliseconds,
         text_money,
+        rect_select,
     }
 }
