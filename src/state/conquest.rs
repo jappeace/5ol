@@ -56,21 +56,23 @@ impl State for ConquestState{
     fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
         use conrod::{color, widget, Colorable, Widget, Positionable, Labelable, Sizeable};
         use conrod::widget::{Oval};
-        if let Some(drag_start) = self.drag_mouse_start{
-            let rect = Rectangle{one:drag_start, two:self.last_mouse_position};
-            let tl = rect.tl();
-            conrod::widget::Rectangle::outline([rect.width(), rect.height()])
-                .x(tl.x).y(tl.y).set(self.ids.rect_select, ui);
-            
-        }
         self.last_screen_size = ui.window_dim();
-        let model = self.updater.model_writer.copy_model();
         let canvas = widget::Canvas::new();
         canvas
             .color(color::BLUE)
             .crop_kids()
             .set(self.ids.canvas_root, ui) ;
+
+        let model = self.updater.model_writer.copy_model();
         let time = model.time;
+
+        if let Some(drag_start) = self.drag_mouse_start{
+            let rect = Rectangle{one:drag_start, two:self.last_mouse_position};
+            let tl = rect.center();
+            conrod::widget::Rectangle::outline([rect.width(), rect.height()])
+                .x(tl.x - self.last_screen_size[0]/2.0).y(-tl.y + self.last_screen_size[1]/2.0).set(self.ids.rect_select, ui);
+            
+        }
 
         self.camera.position = self.camera.track_body.map_or(
             self.camera.position,
