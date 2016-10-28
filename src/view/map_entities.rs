@@ -24,14 +24,14 @@ use conrod::Positionable;
 trait View<T:Widget + Positionable>{
     fn get_view_id(&self)-> Option<NodeIndex<u32>>;
     fn set_view_id(&mut self, NodeIndex<u32>);
-    fn get_world_position(&self, time:&Duration, galaxy:&Galaxy) -> Position;
+    fn get_world_position(&self, game_state:&GameModel) -> Position;
     fn get_widget(&self) -> T;
-    fn is_visible(&self, projection:&Projection, time:&Duration, galaxy:&Galaxy) -> bool{
-        projection.is_pos_visible(&self.get_world_position(time,galaxy))
+    fn is_visible(&self, projection:&Projection, game_state:&GameModel) -> bool{
+        projection.is_pos_visible(&self.get_world_position(game_state))
     }
-    fn render(&mut self, ui:&mut conrod::UiCell, projection:&Projection, time:&Duration, galaxy:&Galaxy){
+    fn render(&mut self, ui:&mut conrod::UiCell, projection:&Projection, game_state:&GameModel){
         let position = projection.world_to_screen(
-            self.get_world_position(time,galaxy)
+            self.get_world_position(game_state)
         );
         let widget = self.get_widget();
         let view_id = self.get_view_id().unwrap_or_else(|| {
@@ -46,6 +46,17 @@ trait View<T:Widget + Positionable>{
     }
 }
 struct ShipView{
-    view_id:NodeIndex<u32>;
+    view_id:Option<NodeIndex<u32>>;
     ship_id:ShipID;
+}
+impl ShipView{
+    fn new(id:ShipID) -> ShipView{
+        ShipView{
+            view_id:None,
+            ship_id:id
+        }
+    }
+}
+impl View<Oval> for ShipView{
+    
 }

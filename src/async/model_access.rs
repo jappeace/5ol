@@ -112,8 +112,8 @@ impl ModelAccess{
                 panic!("done"); // works best
             }
 
-            Change::Select(player, selected) => {
-                game_model.write().expect("it").players[player].selected = selected;
+            Change::Select(player, ref selected) => {
+                game_model.write().expect("it").players[player].selected = selected.clone();
             }
         }
     }

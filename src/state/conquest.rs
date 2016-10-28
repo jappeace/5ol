@@ -139,29 +139,13 @@ impl State for ConquestState{
                     .x(ship.1.x).y(ship.1.y).color(Color::Rgba(0.0,0.0,0.0,1.0))
                     .set(ship.0.view.map_or_else(
                         || {
-                            let result = ui.widget_id_grenerator().next();
+                            let result = ui.widget_id_generator().next();
                             self.updater.enqueue(
                                 Change::ShipViewID(ship.0.id,Some(result))
                             );
                             result
                         },
                         |x| x),ui)
-        }
-
-        for visible_select in model.players[self.player_id].selected
-            .iter().filter_map(|x| {
-                let ship_position = model.ships[*x].movement.calc_position(
-                    &model.time, &model.galaxy
-                );
-                if projection.is_pos_visible(&ship_position){
-                    Some(projection.world_to_screen(ship_position))
-                }else{
-                    None
-                }
-            }){
-                conrod::widget::Rectangle::outline([20, 20])
-                    .x(visible_select.x).y(visible_select.y)
-                    .set();
         }
 
         let pausedlabel = match self.updater.controll.get_status(){
