@@ -108,10 +108,6 @@ impl ModelAccess{
 
             Change::Time(increase) => ModelAccess::resource_tick(game_model.write().expect("it"), increase),
 
-            Change::StopModifications => {
-                panic!("done"); // works best
-            }
-
             Change::Select(player, ref selected) => {
                 game_model.write().expect("it").players[player].selected = selected.clone();
             }
@@ -171,5 +167,4 @@ pub enum Change{
     Construct(AConstructable, BodyAddress),
     Select(PlayerID, Vec<ShipID>),
     Time(Duration),
-    StopModifications // usefull for dealing with controll changes (ie thread abort)
 }
