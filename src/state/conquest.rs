@@ -13,7 +13,7 @@
 
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see <http://www.gnu.org/licenses/>.
-
+ 
 
 // this file describes the main game where you stare at a map of the galaxy
 
@@ -24,9 +24,10 @@ use conrod::Dimensions;
 use chrono::Duration;
 
 use geometry::*;
-use model::root::GameModel;
+use model::root::*;
 use model::colony::*;
 use model::galaxy::*;
+use model::ship::*;
 use camera::*;
 use async::pulser::Pulser;
 use async::logic_updater::Updater;
@@ -39,6 +40,7 @@ pub struct ConquestState{
     camera:Camera,
     updater:Updater,
     pulser:Pulser,
+    player_id:PlayerID,
     last_mouse_position:Position,
     drag_mouse_start:Option<Position>,
     last_screen_size:Dimensions
@@ -66,8 +68,7 @@ impl State for ConquestState{
         let model = self.updater.model_writer.copy_model();
         let time = model.time;
 
-        if let Some(drag_start) = self.drag_mouse_start{
-            let rect = Rectangle{one:drag_start, two:self.last_mouse_position};
+        if let Some(rect) = self.ceate_dragtengle_maybe(){
             let corner = rect.center() - Position::arr(self.last_screen_size) / Position::i(2);
             conrod::widget::Rectangle::outline([rect.width(), rect.height()])
                 .x(-corner.x).y(corner.y).set(self.ids.rect_select, ui);
@@ -82,7 +83,6 @@ impl State for ConquestState{
         let visible = model.galaxy.systems.iter()
             .filter(|x| projection.is_visible(&x.used_space))
             .flat_map(|x| &x.bodies);
-
 
         use state::planet::PlanetState;
         for body in visible{
@@ -139,7 +139,7 @@ impl State for ConquestState{
                     .x(ship.1.x).y(ship.1.y).color(Color::Rgba(0.0,0.0,0.0,1.0))
                     .set(ship.0.view.map_or_else(
                         || {
-                            let result = ui.widget_id_generator().next();
+                            let result = ui.widget_id_grenerator().next();
                             self.updater.enqueue(
                                 Change::ShipViewID(ship.0.id,Some(result))
                             );
@@ -148,7 +148,22 @@ impl State for ConquestState{
                         |x| x),ui)
         }
 
-        
+        for visible_select in model.players[self.player_id].selected
+            .iter().filter_map(|x| {
+                let ship_position = model.ships[*x].movement.calc_position(
+                    &model.time, &model.galaxy
+                );
+                if projection.is_pos_visible(&ship_position){
+                    Some(projection.world_to_screen(ship_position))
+                }else{
+                    None
+                }
+            }){
+                conrod::widget::Rectangle::outline([20, 20])
+                    .x(visible_select.x).y(visible_select.y)
+                    .set();
+        }
+
         let pausedlabel = match self.updater.controll.get_status(){
             Status::Paused => ">",
             _ => "❚❚"
@@ -256,7 +271,30 @@ impl State for ConquestState{
                 self.last_mouse_position
             ),
             Press(Button::Mouse(MouseButton::Left)) => {self.drag_mouse_start = Some(self.last_mouse_position)},
-            Release(Button::Mouse(MouseButton::Left)) => {self.drag_mouse_start = None},
+            Release(Button::Mouse(MouseButton::Left)) => {
+                if let Some(rect) = self.ceate_dragtengle_maybe(){
+                    let projection = self.camera.create_projection(self.last_screen_size);
+                    let projected_rect = Rectangle{
+                        one:projection.screen_to_world(rect.one),
+                        two:projection.screen_to_world(rect.two)
+                    };
+                    let model_lock = self.updater.model_writer.read_lock_model();
+                    let time = model_lock.time;
+                    let selected:Vec<ShipID> = model_lock.ships.iter().filter_map(|x|{
+                        if x.owner != self.player_id{
+                            return None;
+                        }
+                        let ship_pos = x.movement.calc_position(&time, &model_lock.galaxy);
+                        if projected_rect.contains(&ship_pos){
+                            Some(x.id)
+                        }else{
+                            None
+                        }
+                    }).collect();
+                    self.updater.enqueue(Change::Select(self.player_id, selected));
+                };
+                self.drag_mouse_start = None
+            },
             _ => {}
         }
         None
@@ -320,12 +358,20 @@ impl ConquestState{
     pub fn new(generator: conrod::widget::id::Generator, start_cam:Camera, start_model:Arc<RwLock<GameModel>>)->ConquestState{
         ConquestState{
             ids:Ids::new(generator),
+            player_id:0,
             camera:start_cam,
             updater:Updater::new(start_model, Duration::days),
             pulser:Pulser::new(StateEvent::Idle),
             last_mouse_position:center,
             drag_mouse_start:None,
             last_screen_size:init_dimensions
+        }
+    }
+    fn ceate_dragtengle_maybe(&self) -> Option<Rectangle> {
+        if let Some(drag_start) = self.drag_mouse_start{
+            Some(Rectangle{one:drag_start, two:self.last_mouse_position})
+        }else{
+            None
         }
     }
 }

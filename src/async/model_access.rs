@@ -32,8 +32,9 @@ use std::thread;
 use std::sync::{Arc, RwLock, RwLockWriteGuard, RwLockReadGuard};
 use chrono::Duration;
 
-use model::root::GameModel;
+use model::root::{GameModel, PlayerID};
 use model::galaxy::{BodyAddress,BodyClass};
+use model::ship::ShipID;
 use model::colony::{AConstructable,Construction, carrying_capacity_earth};
 use petgraph::graph::NodeIndex;
 
@@ -110,6 +111,10 @@ impl ModelAccess{
             Change::StopModifications => {
                 panic!("done"); // works best
             }
+
+            Change::Select(player, selected) => {
+                game_model.write().expect("it").players[player].selected = selected;
+            }
         }
     }
     fn resource_tick(mut game_model:RwLockWriteGuard<GameModel>, interval:Duration){
@@ -164,6 +169,7 @@ pub enum Change{
     BodyViewID(BodyAddress, Option<NodeIndex<u32>>),
     ShipViewID(usize,Option<NodeIndex<u32>>),
     Construct(AConstructable, BodyAddress),
+    Select(PlayerID, Vec<ShipID>),
     Time(Duration),
     StopModifications // usefull for dealing with controll changes (ie thread abort)
 }

@@ -147,7 +147,7 @@ mod tests{
     fn projection_idompotency(){
         let mut cam = Camera::new(Position{x:3.0, y:59.3}, 4.0, 2.1);
         let some_screensize = [100.0, 250.3]; // floating point may make epsilon differences
-        let projection = cam.create_projection(&some_screensize);
+        let projection = cam.create_projection(some_screensize);
         let some_point = Position::new(49.0, -239.5);
         assert_eq!(
             projection.screen_to_world(projection.world_to_screen(some_point)),
@@ -185,8 +185,7 @@ mod tests{
             start_cam_width,
             start_cam_height
         );
-        let screensize = [300.0, 600.0];
-        let projection = camera.create_projection(&screensize);
+        let projection = camera.create_projection([300.0, 600.0]);
 
         let some_visible_days = [45,135,215,305, 345];
         for day in some_visible_days.iter(){

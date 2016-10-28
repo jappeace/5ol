@@ -19,7 +19,7 @@
 
 use chrono::Duration;
 use model::galaxy::{System, BodyAddress, Galaxy};
-use model::ship::Ship;
+use model::ship::{Ship, ShipID};
 use std::usize;
 
 // top level datastructure, all other models should be attached to this.
@@ -48,7 +48,8 @@ impl GameModel{
             galaxy:Galaxy::new(addressed),
             players:vec![Player{
                 money:0,
-                id:0
+                id:0,
+                selected:Vec::new()
             }],
             ships:Vec::new(),
             time:Duration::zero()
@@ -56,8 +57,10 @@ impl GameModel{
     }
 }
 
+pub type PlayerID = usize;
 #[derive(Clone)]
 pub struct Player{
     pub money:i64,
-    pub id:usize
+    pub id:PlayerID,
+    pub selected:Vec<ShipID>
 }

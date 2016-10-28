@@ -21,12 +21,13 @@ use petgraph::graph::NodeIndex;
 use geometry::Position;
 use model::galaxy::*;
 use model::colony::Constructable;
-use model::root::GameModel;
+use model::root::{GameModel, PlayerID};
 use chrono::Duration;
+pub type ShipID = usize;
 #[derive(Clone)]
 pub struct Ship{
-    owner:usize, // playerid
-    pub id:usize,
+    pub owner:PlayerID, 
+    pub id:ShipID,
     ship_price:i64,
     pub movement:Movement,
     pub view:Option<NodeIndex<u32>>
