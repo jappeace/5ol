@@ -28,7 +28,15 @@ use model::ship::ShipID;
 use geometry::Position;
 use camera::Projection;
 
-trait View<T:Widget + Positionable> {
+trait Renderer {
+    fn render(
+        &mut self,
+        ui:&mut conrod::UiCell,
+        projection:&Projection,
+        game_state:&GameModel
+    );
+}
+trait View<T:Widget + Positionable> : Renderer{
     fn get_view_id(&self)-> Option<NodeIndex<u32>>;
     fn set_view_id(&mut self, NodeIndex<u32>);
     fn get_world_position(&self, game_state:&GameModel) -> Position;
@@ -54,9 +62,8 @@ trait View<T:Widget + Positionable> {
 }
 use std::collections::HashMap;
 use std::hash::Hash;
-trait ViewModelMap<'a, K, S, ViewStruct>
-    where K:'a+Sized+Eq+Hash+Clone, S:Widget + Positionable, ViewStruct:'a+View<S> + Sized{
-
+trait ViewModelMap<'a, K, ViewStruct> 
+    where K:'a+Sized+Eq+Hash+Clone, ViewStruct:'a+ Renderer + Sized{
     fn get_hashmap<'b>(&'b mut self) -> &'b mut HashMap<K, ViewStruct>;
     fn create_view(&self, with_key:K) -> ViewStruct;
 
@@ -68,16 +75,20 @@ trait ViewModelMap<'a, K, S, ViewStruct>
             );
         }
     }
+}
+impl<'a, K, ViewStruct> Renderer for ViewModelMap<'a, K, ViewStruct>
+    where K:'a+Sized+Eq+Hash+Clone, ViewStruct:'a+ Renderer + Sized{
     fn render(&mut self, ui:&mut conrod::UiCell, projection:&Projection, game_state:&GameModel){
         for value in self.get_hashmap().values_mut(){
             value.render(ui,projection,game_state);
         }
     }
 }
+
 struct ShipViews{
     map:HashMap<ShipID, ShipView>
 }
-impl<'a> ViewModelMap<'a, ShipID, Oval, ShipView> for ShipViews{
+impl<'a> ViewModelMap<'a, ShipID, ShipView> for ShipViews{
     fn get_hashmap<'b>(&'b mut self) -> &'b mut HashMap<ShipID, ShipView>{
         &mut self.map
     }
@@ -109,5 +120,15 @@ impl View<Oval> for ShipView{
     }
     fn get_widget(&self) -> Oval{
         Oval::fill([5.0,5.0])
+    }
+}
+impl Renderer for ShipView{
+    fn render(
+        &mut self,
+        ui:&mut conrod::UiCell,
+        projection:&Projection,
+        game_state:&GameModel
+    ){
+        View::<Oval>::render(self,ui,projection,game_state)
     }
 }
