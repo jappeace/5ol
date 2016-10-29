@@ -43,9 +43,6 @@ impl Position{
     pub fn i(size:isize) -> Position{
         Position::is(size,size)
     }
-    pub fn f(size:f64) -> Position{
-        Position::new(size,size)
-    }
     fn dot(&self, with:Position) -> f64{
         self.length() * with.length() * self.angle_rad(with).cos()
     }

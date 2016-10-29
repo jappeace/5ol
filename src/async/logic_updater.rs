@@ -61,7 +61,7 @@ impl Updater{
         // obtain read lock to prevent going faster than the writer at speed 0
         let lock = model_writer.read();
         let mktimefunc = granuality.read().unwrap();
-        sender.send(Change::Time(mktimefunc(1)));
+        sender.send(Change::Time(mktimefunc(1))).expect("other side hung up");
     }
     pub fn set_granuality(&mut self, to:fn(i64)->Duration){
         *self.granuality.write().expect("writing new granu") = to;

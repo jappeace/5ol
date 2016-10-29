@@ -35,7 +35,7 @@ use chrono::Duration;
 use model::root::{GameModel, PlayerID};
 use model::galaxy::{BodyAddress,BodyClass};
 use model::ship::ShipID;
-use model::colony::{AConstructable,Construction, carrying_capacity_earth};
+use model::colony::*;
 use petgraph::graph::NodeIndex;
 
 use async::thread_status::{ThreadControll, Status};
@@ -115,27 +115,22 @@ impl ModelAccess{
     }
     fn resource_tick(mut game_model:RwLockWriteGuard<GameModel>, interval:Duration){
         game_model.time = game_model.time + interval;
+        let colony_unit = Colony::unit();
         let changes:Vec<(BodyAddress,i64,Option<(usize,i64)>)> = game_model.galaxy.systems.iter()
             .flat_map(|x| x.bodies.iter().filter_map(|cur| {
-                    match &cur.class {
-                        &BodyClass::Rocky(ref h) => {
-                            if let Some(pop) = h.population.clone(){
-                                Some((
-                                    cur.address,
-                                    pop.calc_head_increase(
-                                        (h.size*carrying_capacity_earth) as i64,
-                                        interval
-                                    ),
-                                    // no owner, no tax change
-                                    h.owner.map_or(None, |x| Some((x,pop.calc_tax_over(interval) as i64))),
-                                ))
-                            }else{
-                                None
-                            }
-                        },
-                        _ =>{ None}
-                    }
-                })
+                let colony = cur.get_colony().unwrap_or(&colony_unit);
+                if let Some(pop) = colony.population.clone(){
+                    Some((
+                        cur.address,
+                        pop.calc_head_increase(
+                            (colony.size*carrying_capacity_earth) as i64,
+                            interval
+                        ),
+                        // no owner, no tax change
+                        colony.owner.map_or(None, |x| Some((x,pop.calc_tax_over(interval) as i64))),
+                    ))
+                }else{None}
+            })
             ).collect();
         let mut constructions:Vec<(BodyAddress, AConstructable)> = Vec::new();
         for change in changes{

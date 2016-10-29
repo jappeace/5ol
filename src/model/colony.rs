@@ -36,6 +36,9 @@ pub struct Colony{
     pub construction_queue:Vec<Construction>,
 }
 impl Colony{
+    pub fn unit()->Colony{
+        Colony::new_empty(0.0)
+    }
     pub fn new_empty(size:Earths)->Colony{
         Colony{
             population:None,

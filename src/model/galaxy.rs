@@ -90,9 +90,9 @@ impl StellarBody{
     pub fn calc_position(&self, since_start_of_simulation:&Duration) -> Position{
         calc_orbit(&self.orbit_time, self.distance, since_start_of_simulation)
     }
-    pub fn get_owner(&self)->Option<usize>{
+    pub fn get_colony<'b>(&'b self)->Option<&'b Colony>{
         match self.class{
-            BodyClass::Rocky(ref colony) => colony.owner,
+            BodyClass::Rocky(ref colony) => Some(&colony),
             _ => None
         }
     }
