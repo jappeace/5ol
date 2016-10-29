@@ -20,8 +20,15 @@
 use petgraph::graph::NodeIndex;
 use conrod::widget::Widget;
 use conrod::Positionable;
+use conrod::widget::{Oval};
+use conrod;
 
-trait View<T:Widget + Positionable>{
+use model::root::GameModel;
+use model::ship::ShipID;
+use geometry::Position;
+use camera::Projection;
+
+trait View<T:Widget + Positionable> {
     fn get_view_id(&self)-> Option<NodeIndex<u32>>;
     fn set_view_id(&mut self, NodeIndex<u32>);
     fn get_world_position(&self, game_state:&GameModel) -> Position;
@@ -45,9 +52,42 @@ trait View<T:Widget + Positionable>{
         );
     }
 }
+use std::collections::HashMap;
+use std::hash::Hash;
+trait ViewModelMap<'a, K, S, ViewStruct>
+    where K:'a+Sized+Eq+Hash+Clone, S:Widget + Positionable, ViewStruct:'a+View<S> + Sized{
+
+    fn get_hashmap<'b>(&'b mut self) -> &'b mut HashMap<K, ViewStruct>;
+    fn create_view(&self, with_key:K) -> ViewStruct;
+
+    fn update_views(&mut self, keys:&Vec<K>){
+        for k in keys{
+            let view = self.create_view(k.clone());
+            self.get_hashmap().entry(k.clone()).or_insert(
+                view
+            );
+        }
+    }
+    fn render(&mut self, ui:&mut conrod::UiCell, projection:&Projection, game_state:&GameModel){
+        for value in self.get_hashmap().values_mut(){
+            value.render(ui,projection,game_state);
+        }
+    }
+}
+struct ShipViews{
+    map:HashMap<ShipID, ShipView>
+}
+impl<'a> ViewModelMap<'a, ShipID, Oval, ShipView> for ShipViews{
+    fn get_hashmap<'b>(&'b mut self) -> &'b mut HashMap<ShipID, ShipView>{
+        &mut self.map
+    }
+    fn create_view(&self, with_key:ShipID) -> ShipView{
+        ShipView::new(with_key)
+    }
+}
 struct ShipView{
-    view_id:Option<NodeIndex<u32>>;
-    ship_id:ShipID;
+    view_id:Option<NodeIndex<u32>>,
+    ship_id:ShipID
 }
 impl ShipView{
     fn new(id:ShipID) -> ShipView{
@@ -58,5 +98,16 @@ impl ShipView{
     }
 }
 impl View<Oval> for ShipView{
-    
+    fn get_view_id(&self)-> Option<NodeIndex<u32>>{
+        self.view_id
+    }
+    fn set_view_id(&mut self, id:NodeIndex<u32>){
+        self.view_id = Some(id);
+    }
+    fn get_world_position(&self, game_state:&GameModel) -> Position{
+        game_state.ships[self.ship_id].movement.calc_position(&game_state.time, &game_state.galaxy)
+    }
+    fn get_widget(&self) -> Oval{
+        Oval::fill([5.0,5.0])
+    }
 }

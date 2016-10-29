@@ -47,6 +47,9 @@ mod async{
     pub mod model_access;
     pub mod pulser;
 }
+mod view{
+    pub mod map_entities;
+}
 
 use state::state_machine::StateMachine;
 use state::begin::BeginState;
