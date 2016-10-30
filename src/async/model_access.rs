@@ -36,7 +36,6 @@ use model::root::{GameModel, PlayerID};
 use model::galaxy::{BodyAddress,BodyClass};
 use model::ship::ShipID;
 use model::colony::*;
-use petgraph::graph::NodeIndex;
 
 use async::thread_status::{ThreadControll, Status};
 use std::sync::mpsc::{channel, Sender};
@@ -86,14 +85,6 @@ impl ModelAccess{
     }
     fn write(game_model:Arc<RwLock<GameModel>>, change:&Change){
         match *change{
-
-            Change::BodyViewID(address, changeto) => {
-                let mut body = &mut game_model.write().expect("it").galaxy[address];
-                body.view_id = changeto;
-            }       
-
-            Change::ShipViewID(id,changeto) =>
-                game_model.write().expect("it").ships[id].view = changeto,
 
             Change::Construct(ref constructable, address) =>{
                 let mut body = &mut game_model.write().expect("it").galaxy[address];
@@ -157,8 +148,6 @@ impl ModelAccess{
 }
 
 pub enum Change{
-    BodyViewID(BodyAddress, Option<NodeIndex<u32>>),
-    ShipViewID(usize,Option<NodeIndex<u32>>),
     Construct(AConstructable, BodyAddress),
     Select(PlayerID, Vec<ShipID>),
     Time(Duration),

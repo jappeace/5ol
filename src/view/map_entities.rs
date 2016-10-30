@@ -15,28 +15,23 @@
 // along with this program.If not, see <http://www.gnu.org/licenses/>.
  
 
-// this file describes the main game where you stare at a map of the galaxy
+// This file contains most boilerplate for drawing shapes on the map.
+// The most important thing it does is connecting things from the game model
+// to their respective conrod view_id's.
 
 use petgraph::graph::NodeIndex;
-use conrod::widget::Widget;
-use conrod::Positionable;
 use conrod::widget::{Oval};
 use conrod;
+use conrod::Color;
+use conrod::{Colorable, Widget, Positionable};
 
-use model::root::GameModel;
+use model::root::*;
 use model::ship::ShipID;
+use model::galaxy::*;
 use geometry::Position;
 use camera::Projection;
 
-trait Renderer {
-    fn render(
-        &mut self,
-        ui:&mut conrod::UiCell,
-        projection:&Projection,
-        game_state:&GameModel
-    );
-}
-trait View<T:Widget + Positionable> : Renderer{
+pub trait View<T:Widget + Positionable> {
     fn get_view_id(&self)-> Option<NodeIndex<u32>>;
     fn set_view_id(&mut self, NodeIndex<u32>);
     fn get_world_position(&self, game_state:&GameModel) -> Position;
@@ -44,7 +39,12 @@ trait View<T:Widget + Positionable> : Renderer{
     fn is_visible(&self, projection:&Projection, game_state:&GameModel) -> bool{
         projection.is_pos_visible(&self.get_world_position(game_state))
     }
-    fn render(&mut self, ui:&mut conrod::UiCell, projection:&Projection, game_state:&GameModel){
+    fn render(
+        &mut self,
+        ui:&mut conrod::UiCell,
+        projection:&Projection,
+        game_state:&GameModel
+    ) {
         let position = projection.world_to_screen(
             self.get_world_position(game_state)
         );
@@ -62,40 +62,71 @@ trait View<T:Widget + Positionable> : Renderer{
 }
 use std::collections::HashMap;
 use std::hash::Hash;
-trait ViewModelMap<'a, K, ViewStruct> 
-    where K:'a+Sized+Eq+Hash+Clone, ViewStruct:'a+ Renderer + Sized{
-    fn get_hashmap<'b>(&'b mut self) -> &'b mut HashMap<K, ViewStruct>;
-    fn create_view(&self, with_key:K) -> ViewStruct;
-
-    fn update_views(&mut self, keys:&Vec<K>){
+use std::marker::PhantomData;
+pub struct ViewsMap<Key,Shape,ViewStruct>
+    where Key:Sized+Eq+Hash+Clone,
+          Shape:Widget + Positionable,
+          ViewStruct:View<Shape> + Sized{
+    pub map:HashMap<Key, ViewStruct>,
+    create_view:fn(Key)->ViewStruct,
+    shape_has_to_be_used:PhantomData<Shape>
+}
+impl<Key,Shape,ViewStruct> ViewsMap<Key,Shape,ViewStruct>
+    where Key: Sized + Eq + Hash + Clone,
+    Shape:Widget + Positionable,
+    ViewStruct:View<Shape> + Sized{
+    fn update_views<I>(&mut self, keys:I)
+        where I: Iterator<Item=Key>{
         for k in keys{
-            let view = self.create_view(k.clone());
-            self.get_hashmap().entry(k.clone()).or_insert(
+            let view = (self.create_view)(k.clone());
+            self.map.entry(k.clone()).or_insert(
                 view
             );
         }
     }
-}
-impl<'a, K, ViewStruct> Renderer for ViewModelMap<'a, K, ViewStruct>
-    where K:'a+Sized+Eq+Hash+Clone, ViewStruct:'a+ Renderer + Sized{
     fn render(&mut self, ui:&mut conrod::UiCell, projection:&Projection, game_state:&GameModel){
-        for value in self.get_hashmap().values_mut(){
+        for value in self.map.values_mut().filter(|x| x.is_visible(projection, game_state)){
             value.render(ui,projection,game_state);
+        }
+    }
+    fn new(create_function:fn(Key)->ViewStruct)->ViewsMap<Key,Shape,ViewStruct>{
+        ViewsMap::<Key,Shape,ViewStruct>{
+            map:HashMap::<Key,ViewStruct>::new(),
+            create_view:create_function,
+            shape_has_to_be_used:PhantomData
         }
     }
 }
 
-struct ShipViews{
-    map:HashMap<ShipID, ShipView>
+use conrod::widget::Rectangle;
+pub struct MapRenderer{
+    pub planets:ViewsMap<BodyAddress, Oval, PlanetView>,
+    ships:ViewsMap<ShipID, Oval, ShipView>,
+    selected:ViewsMap<usize,Rectangle,SelectionView>,
+    player:PlayerID
 }
-impl<'a> ViewModelMap<'a, ShipID, ShipView> for ShipViews{
-    fn get_hashmap<'b>(&'b mut self) -> &'b mut HashMap<ShipID, ShipView>{
-        &mut self.map
+impl MapRenderer{
+    pub fn new() -> MapRenderer{
+        MapRenderer{
+            planets:ViewsMap::<BodyAddress, Oval, PlanetView>::new(PlanetView::new),
+            ships:ViewsMap::<ShipID, Oval, ShipView>::new(ShipView::new),
+            selected:ViewsMap::<usize,Rectangle,SelectionView>::new(SelectionView::new),
+            player:0
+        }
     }
-    fn create_view(&self, with_key:ShipID) -> ShipView{
-        ShipView::new(with_key)
+    pub fn render(&mut self, ui:&mut conrod::UiCell, projection:&Projection, game_state:&GameModel){
+        self.planets.update_views(game_state.galaxy.systems.iter().filter(
+            |x| projection.is_visible(&x.used_space)
+        ).flat_map(|x| x.bodies.iter().map(|y| y.address)));
+        self.planets.render(ui,projection,game_state);
+        self.ships.update_views(game_state.ships.iter().enumerate().map(|x| x.0));
+        self.ships.render(ui,projection,game_state);
+        self.selected.update_views(game_state.players[self.player].selected.iter().enumerate().map(|x| x.0));
+        self.selected.render(ui,projection,game_state);
     }
+    
 }
+
 struct ShipView{
     view_id:Option<NodeIndex<u32>>,
     ship_id:ShipID
@@ -108,6 +139,7 @@ impl ShipView{
         }
     }
 }
+const black:Color = Color::Rgba(0.0,0.0,0.0,1.0);
 impl View<Oval> for ShipView{
     fn get_view_id(&self)-> Option<NodeIndex<u32>>{
         self.view_id
@@ -119,16 +151,57 @@ impl View<Oval> for ShipView{
         game_state.ships[self.ship_id].movement.calc_position(&game_state.time, &game_state.galaxy)
     }
     fn get_widget(&self) -> Oval{
-        Oval::fill([5.0,5.0])
+        Oval::fill([5.0,5.0]).color(black)
     }
 }
-impl Renderer for ShipView{
-    fn render(
-        &mut self,
-        ui:&mut conrod::UiCell,
-        projection:&Projection,
-        game_state:&GameModel
-    ){
-        View::<Oval>::render(self,ui,projection,game_state)
+pub struct PlanetView{
+    view_id:Option<NodeIndex<u32>>,
+    address:BodyAddress,
+}
+impl PlanetView{
+    fn new(address:BodyAddress)->PlanetView{
+        PlanetView{view_id:None,address:address}
+    }
+}
+impl View<Oval> for PlanetView{
+    fn get_view_id(&self)-> Option<NodeIndex<u32>>{
+        self.view_id
+    }
+    fn set_view_id(&mut self, id:NodeIndex<u32>){
+        self.view_id = Some(id);
+    }
+    fn get_world_position(&self, game_state:&GameModel) -> Position{
+        game_state.galaxy[self.address].calc_position(&game_state.time)
+    }
+    fn get_widget(&self) -> Oval{
+        Oval::fill([10.0,10.0])
+    }
+}
+
+struct SelectionView{
+    view_id:Option<NodeIndex<u32>>,
+    selected_index:usize,
+    player_id:PlayerID,
+}
+impl SelectionView{
+    fn new(address:usize)->SelectionView{
+        SelectionView{view_id:None,selected_index:address, player_id:0}
+    }
+}
+impl View<Rectangle> for SelectionView{
+    fn get_view_id(&self)-> Option<NodeIndex<u32>>{
+        self.view_id
+    }
+    fn set_view_id(&mut self, id:NodeIndex<u32>){
+        self.view_id = Some(id);
+    }
+    fn get_world_position(&self, game_state:&GameModel) -> Position{
+        let ship_id = game_state.players[self.player_id].selected[self.selected_index];
+        game_state.ships[ship_id].movement.calc_position(
+            &game_state.time, &game_state.galaxy
+        )
+    }
+    fn get_widget(&self) -> Rectangle{
+        Rectangle::outline([10.0,10.0])
     }
 }

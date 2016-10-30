@@ -16,7 +16,6 @@
 
 
 // this file models ships in the galaxy, the main form of units
-use petgraph::graph::NodeIndex;
 
 use geometry::Position;
 use model::galaxy::*;
@@ -30,7 +29,6 @@ pub struct Ship{
     pub id:ShipID,
     ship_price:i64,
     pub movement:Movement,
-    pub view:Option<NodeIndex<u32>>
 }
 impl Ship{
     pub fn new(
@@ -44,7 +42,6 @@ impl Ship{
             id:MAX, // make sure it'll crash if not assigned
             ship_price:ship_price,
             movement:Movement::Orbit(Duration::zero(), construct_location),
-            view:None
         }
     }
 }

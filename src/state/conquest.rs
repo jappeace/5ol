@@ -22,6 +22,7 @@ use piston_window::Input;
 use conrod;
 use conrod::Dimensions;
 use chrono::Duration;
+use std::sync::{Arc, RwLock};
 
 use geometry::*;
 use model::root::*;
@@ -33,7 +34,8 @@ use async::pulser::Pulser;
 use async::logic_updater::Updater;
 use async::model_access::Change;
 use async::thread_status::Status;
-use std::sync::{Arc, RwLock};
+use state::planet::PlanetState;
+use view::map_entities::{MapRenderer, View};
 
 pub struct ConquestState{
     ids:Ids,
@@ -41,6 +43,7 @@ pub struct ConquestState{
     updater:Updater,
     pulser:Pulser,
     player_id:PlayerID,
+    map_renderer:MapRenderer,
     last_mouse_position:Position,
     drag_mouse_start:Option<Position>,
     last_screen_size:Dimensions
@@ -57,7 +60,6 @@ impl State for ConquestState{
     }
     fn update(&mut self, ui:&mut conrod::UiCell) ->  StateChange{
         use conrod::{color, widget, Colorable, Widget, Positionable, Labelable, Sizeable};
-        use conrod::widget::{Oval};
         self.last_screen_size = ui.window_dim();
         let canvas = widget::Canvas::new();
         canvas
@@ -80,23 +82,14 @@ impl State for ConquestState{
         );
 
         let projection = self.camera.create_projection(self.last_screen_size);
-        let visible = model.galaxy.systems.iter()
-            .filter(|x| projection.is_visible(&x.used_space))
-            .flat_map(|x| &x.bodies);
 
-        use state::planet::PlanetState;
-        for body in visible{
-            let view_id = match body.view_id{
-                None => {
-                    let newid = ui.widget_id_generator().next();
-                    self.updater.enqueue(Change::BodyViewID(body.address, Some(newid)));
-                    newid
-                }
-                Some(x) => x
-            };
-            let body_position = body.calc_position(&time);
-            let position = projection.world_to_screen(body_position);
-            Oval::fill([10.0,10.0]).x(position.x).y(position.y).set(view_id, ui);
+        self.map_renderer.render(ui,&projection,&model);
+        for (body_address, view_id) in self.map_renderer.planets.map.iter().filter_map(
+            |kv| if let Some(view_id) = kv.1.get_view_id(){
+                Some((kv.0, view_id))
+            }else{
+                None
+            }){
             let mut should_return = false;
             {
                 let input = ui.widget_input(view_id);
@@ -107,45 +100,17 @@ impl State for ConquestState{
                         should_return = true;
                     }
                     if let ButtonPosition::Down(_, _) = *buttons.right(){
-                        self.camera.track_body = Some(body.address);
+                        self.camera.track_body = Some(body_address.clone());
                     }
                 }
             }
             if should_return{
                 return Some(Box::new(PlanetState::new(
                     ui.widget_id_generator(),
-                    body.address,
+                    body_address.clone(),
                     self.updater.model_writer.clone()
                 )));
             }
-        }
-
-
-        use conrod::Color;
-        for ship in model.ships
-            .iter()
-            .filter_map(|x|{
-                let position = x.movement.calc_position(&model.time, &model.galaxy);
-                if projection.is_pos_visible(&position){
-                    println!("shippp!  {}, viewport {}", position, projection.view_port);
-                    Some((x, projection.world_to_screen(position)))
-                }else{
-                    println!("filtered {}, viewport {}", position, projection.view_port);
-                    None
-                }
-            })
-            {
-                Oval::fill([5.0,5.0])
-                    .x(ship.1.x).y(ship.1.y).color(Color::Rgba(0.0,0.0,0.0,1.0))
-                    .set(ship.0.view.map_or_else(
-                        || {
-                            let result = ui.widget_id_generator().next();
-                            self.updater.enqueue(
-                                Change::ShipViewID(ship.0.id,Some(result))
-                            );
-                            result
-                        },
-                        |x| x),ui)
         }
 
         let pausedlabel = match self.updater.controll.get_status(){
@@ -346,6 +311,7 @@ impl ConquestState{
             camera:start_cam,
             updater:Updater::new(start_model, Duration::days),
             pulser:Pulser::new(StateEvent::Idle),
+            map_renderer:MapRenderer::new(),
             last_mouse_position:center,
             drag_mouse_start:None,
             last_screen_size:init_dimensions

@@ -22,7 +22,6 @@
 
 use chrono::Duration;
 use geometry::*;
-use petgraph::graph::NodeIndex;
 use model::colony::Colony;
 use std::usize;
 
@@ -46,12 +45,6 @@ pub struct StellarBody{
     pub name:&'static str,
     pub orbit_time:Duration,
     pub distance:Au,
-    // conrod uses an id to keep track of widgets,
-    // however since the stellar bodies are generated we need to decide these
-    // on the fly, see: http://docs.piston.rs/conrod/conrod/widget/id/type.Id.html
-    // the initial approach just generate a new one forever, but I think that
-    // is just a memory leak.
-    pub view_id:Option<NodeIndex<u32>>,
     // if you have the body you can modify it in constant time
     pub address:BodyAddress,
 }
@@ -62,7 +55,6 @@ impl StellarBody{
             name:name,
             orbit_time: orbit,
             distance:distance,
-            view_id:None,
             address:unkown_address,
         }
     }
@@ -114,7 +106,10 @@ pub fn calc_orbit(orbit_duration:&Duration, orbit_distance:Au, time:&Duration) -
     }
 }
 
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone,Copy,Debug,Eq,Hash,PartialEq)]
+//TODO: perhaps we can implement a custom hash that abuses knowledge of
+// systemsizes to make a simple addition sum of it. (this knowledge should
+// be available at compile time, as long as we don't generate anything randomly)
 pub struct BodyAddress{
     pub system_id:usize,
     pub planet_id:usize,
