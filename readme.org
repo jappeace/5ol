@@ -7,7 +7,7 @@ time mechanism is completed as is the basic orbit idea.
 This game is implemented in Rust to get every little bit of performence
 out of the hardware, including paralization wherever it makes sense.
 
-* Ideas<
+* Ideas
 
 The main resources will be money and energy. money is a global constraint,
 but energy is local (although can be moved).
