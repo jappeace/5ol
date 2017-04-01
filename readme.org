@@ -21,29 +21,63 @@ make to many types so I'm thinking of about 3 building materials (copper,
 iron, rare earth metals), then also several fuel sources such as (methane, oil)
 and carbon, which can act as building material and fuel.
 
-*** TODO Ship navigation.
-**** let them fly trough the game (and stuff like drag a box interaction)
-*** TODO A simple AI.
-**** mainly to fight against
-*** TODO Combat.
-**** possible weapon types: rockets, lasers/energy, kinetic, mines, kamikaza strikes?
-*** TODO colonization.
-*** TODO import the galaxy (or generate it, probably import)
-*** TODO save games
-*** TODO research?
-**** Perhaps resources should be "unlocked" during research,
+*** todo list
+**** TODO Ship navigation.
+***** let them fly trough the game (and stuff like drag a box interaction)
+**** TODO A simple AI.
+***** mainly to fight against
+**** TODO Combat.
+***** possible weapon types: rockets, lasers/energy, kinetic, mines, kamikaza strikes?
+**** TODO colonization.
+**** TODO import the galaxy (or generate it, probably import)
+**** TODO save games
+**** TODO research?
+***** Perhaps resources should be "unlocked" during research,
 so that new players aren't swamped with stuff to do. Actually this is
 a nice thing about research, it unlocks stuff at a pace so you can take
 your time to explore new concepts. To fast research should be avoided.
-**** Different engine types, chemical, pulse, ion
-**** Some kind of jump technology for later game? Maybe different kinds such as:
-***** Warp bubble engines, engines that move an area of space but are heavy/costly
-***** Wormholes, define 1 entrence/exit, to n-light years, but moving the exit/entrence is costly
-***** Lane engines, cheaper warp engines that can only follow certain routes
+***** Different engine types, chemical, pulse, ion
+***** Some kind of jump technology for later game? Maybe different kinds such as:
+****** Warp bubble engines, engines that move an area of space but are heavy/costly
+****** Wormholes, define 1 entrence/exit, to n-light years, but moving the exit/entrence is costly
+****** Lane engines, cheaper warp engines that can only follow certain routes
 
-*** TODO UI stuff
+**** TODO UI stuff
 - Drag across the map.
 - Revamp time controlls (at least show which are active).
+
+*** Game design analyses
+    So the game I was designing up till now may have been more a number based
+game but perhaps it woudln't have been the most exciting,
+I've been watching a lot of profesional aoe2 play lately and been thinking about
+some of their design decisions:
+
+**** Houses
+In particular, they are very annoying for players why would you add such an
+element?
+First of all they allow the player to change the landscape in a limited way.
+Therefore even if the same map is palyed, the game will almost surely not be the
+same.
+
+We could emulate such a structure with for example communication sattalites for
+robotic opperations. Or living habitats in orbet. The difference would be that
+even these would keep changing position. So I'm not sure how this would work as
+a "wall".
+
+**** Villagers
+Villagers are there for the slaughter, which is gives one player a lot of stress,
+but the othe a lot of satisfication. (even the dying sounds).
+However the genius is that sometimes they can be turned into a dagger,
+which can completely reverse the situation.
+
+**** Dedicated resources for dedicated strategies
+For example stone to obtain a bunch of map controll with towers and castles.
+Also for turteling.
+This forces players to make decisions early on about what they want to do.
+
+This is unlike the normal decision which are often way more mixed or unbalanced,
+(in civ science is for example always good).
+
 ** Architecture
 
 The graphics are rendered screen by screen with a state per screen.
