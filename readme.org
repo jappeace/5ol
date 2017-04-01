@@ -1,4 +1,4 @@
-* 50l
+#+TITLE: 50l
 
 This project is intended to be a space 4x game. Right
 now there is little to speak of in terms of game mechenics. Although the
@@ -7,7 +7,7 @@ time mechanism is completed as is the basic orbit idea.
 This game is implemented in Rust to get every little bit of performence
 out of the hardware, including paralization wherever it makes sense.
 
-** Ideas
+* Ideas<
 
 The main resources will be money and energy. money is a global constraint,
 but energy is local (although can be moved).
@@ -21,38 +21,56 @@ make to many types so I'm thinking of about 3 building materials (copper,
 iron, rare earth metals), then also several fuel sources such as (methane, oil)
 and carbon, which can act as building material and fuel.
 
-*** todo list
-**** TODO Ship navigation.
-***** let them fly trough the game (and stuff like drag a box interaction)
-**** TODO A simple AI.
-***** mainly to fight against
-**** TODO Combat.
-***** possible weapon types: rockets, lasers/energy, kinetic, mines, kamikaza strikes?
-**** TODO colonization.
-**** TODO import the galaxy (or generate it, probably import)
-**** TODO save games
-**** TODO research?
-***** Perhaps resources should be "unlocked" during research,
+** todo list
+Just to get a game like experience the following would be neccisary:
+
+1. Drag across the map.
+2. Revamp time controlls (at least show which are active).
+3. Ship navigation.
+    let them fly trough the game (and stuff like drag a box interaction)
+4. A simple AI.
+   mainly to fight against, to have something todo in the game.
+5. Combat.
+   possible weapon types: rockets, lasers/energy, kinetic, mines, kamikaza strikes?
+   Will just do a single type first.
+6. colonization, to expend your empire
+
+*** More advanced todo items
+    Not necessary for playing the game
+
+1. import the galaxy (or generate it, probably import), currently its hardcoded
+2. save games
+
+**** Research
+This will help pacing the game and add a sense of progression, however its hardly a core mechanic.
+However its a lot of work to setup and balance.
+In here I just throw in some ideas.
+
+***** Unlocking resources
+Perhaps resources should be "unlocked" during research,
 so that new players aren't swamped with stuff to do. Actually this is
 a nice thing about research, it unlocks stuff at a pace so you can take
 your time to explore new concepts. To fast research should be avoided.
-***** Different engine types, chemical, pulse, ion
+
+***** Engine types
+Different engine types, chemical, pulse, ion
 ***** Some kind of jump technology for later game? Maybe different kinds such as:
-****** Warp bubble engines, engines that move an area of space but are heavy/costly
-****** Wormholes, define 1 entrence/exit, to n-light years, but moving the exit/entrence is costly
-****** Lane engines, cheaper warp engines that can only follow certain routes
+(I'm basically stealing this from stelaris, whatever).
+The inclusion of multiple would require balancing.
+Therefore I think first we would just pick a single one.
++ Warp bubble engines, engines that move an area of space but are heavy/costly
+  Note that they produce bubbles so they could help transport other ships.
++ Wormholes, define 1 entrence/exit, to n-light years, but moving the exit/entrence is costly
+  This seems more like a late game econmic "highway"
++ Lane engines, cheaper warp engines that can only follow certain routes
 
-**** TODO UI stuff
-- Drag across the map.
-- Revamp time controlls (at least show which are active).
-
-*** Game design analyses
+** Game design analyses
     So the game I was designing up till now may have been more a number based
 game but perhaps it woudln't have been the most exciting,
 I've been watching a lot of profesional aoe2 play lately and been thinking about
 some of their design decisions:
 
-**** Houses
+*** Houses
 In particular, they are very annoying for players why would you add such an
 element?
 First of all they allow the player to change the landscape in a limited way.
@@ -64,13 +82,13 @@ robotic opperations. Or living habitats in orbet. The difference would be that
 even these would keep changing position. So I'm not sure how this would work as
 a "wall".
 
-**** Villagers
+*** Villagers
 Villagers are there for the slaughter, which is gives one player a lot of stress,
 but the othe a lot of satisfication. (even the dying sounds).
 However the genius is that sometimes they can be turned into a dagger,
 which can completely reverse the situation.
 
-**** Dedicated resources for dedicated strategies
+*** Dedicated resources for dedicated strategies
 For example stone to obtain a bunch of map controll with towers and castles.
 Also for turteling.
 This forces players to make decisions early on about what they want to do.
@@ -78,7 +96,7 @@ This forces players to make decisions early on about what they want to do.
 This is unlike the normal decision which are often way more mixed or unbalanced,
 (in civ science is for example always good).
 
-** Architecture
+* Architecture
 
 The graphics are rendered screen by screen with a state per screen.
 
@@ -89,7 +107,7 @@ The idea behind this is that certain writes should be atomic (such as the
 time/resource update) and the best way to guarantee this is to just get the
 write lock during the entire calculation.
 
-*** use 64 bit value representations
+** use 64 bit value representations
 This allows a staggering amount of precision, and in Au it sort of fits the
 entire milky way for f64 without using heap based tricks. This allows
 for a crazy amount of zoom level which makes space feel really empty.
@@ -103,10 +121,10 @@ And yes I've considered that this is slower than f32 (or i32),
 but the fact it can perfectly model the entire milky way is just such a
 big pro that I don't care.
 
-** License
+* License
 
 Feel free to use this project in anyway you like conform the GPLv3.
 
-** Special thanks to
+* Special thanks to
 
 Aurora 4x for inspiring me.
