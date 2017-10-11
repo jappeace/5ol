@@ -25,9 +25,11 @@ extern crate find_folder;
 extern crate piston_window;
 extern crate chrono;
 extern crate petgraph;
+extern crate input;
 
 use piston_window::{EventLoop, OpenGL, PistonWindow, WindowSettings, TextureSettings, G2dTexture};
 use piston_window::Event::*;
+use input::Loop::*;
 
 mod state {
     pub mod state_machine;
@@ -122,32 +124,40 @@ fn main() {
                 WantsUpdate => should_update = true,
             }
         }
-        if let Some(e) = conrod::backend::piston::event::convert(event.clone(), &window) {
+        use piston_window::Window;
+        let size = window.size();
+        let (win_w, win_h) = (size.width as conrod::Scalar, size.height as conrod::Scalar);
+        if let Some(e) = conrod::backend::piston::event::convert(event.clone(), win_w, win_h) {
             ui.handle_event(e);
         }
         match event.clone() {
-            Idle(_) => std::thread::yield_now(),
-            Render(_) => {
-                window.draw_2d(&event, |c, g| {
-                        if let Some(primitives) = ui.draw_if_changed() {
-                            fn texture_from_image<T>(img: &T) -> &T {
-                                img
-                            };
-                            conrod::backend::piston_window::draw(c,
-                                                                 g,
-                                                                 primitives,
-                                                                 &mut text_texture_cache,
-                                                                 &image_map,
-                                                                 texture_from_image);
+            Loop(loop_event) => {
+                match loop_event {
+                    Idle(_) => std::thread::yield_now(),
+                    Render(_) => {
+                        window.draw_2d(&event, |context, graphics| {
+                                if let Some(primitives) = ui.draw_if_changed() {
+                                    fn texture_from_image<T>(img: &T) -> &T {
+                                        img
+                                    };
+                                    conrod::backend::piston::draw::primitives(
+                                                                        primitives,
+                                                                        context,
+                                                                         graphics,
+                                                                         &mut text_texture_cache,
+                                                                         &image_map,
+                                                                         texture_from_image);
+                                }
+                            })
+                            .unwrap()
+                    }
+                    AfterRender(_) => continue,
+                    Update(_) => {
+                        if should_update {
+                            state_machine.update(&mut ui.set_widgets());
+                            should_update = false
                         }
-                    })
-                    .unwrap()
-            }
-            AfterRender(_) => continue,
-            Update(_) => {
-                if should_update {
-                    state_machine.update(&mut ui.set_widgets());
-                    should_update = false
+                    }
                 }
             }
             Input(i) => {
