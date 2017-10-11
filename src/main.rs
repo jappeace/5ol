@@ -95,7 +95,7 @@ fn main() {
     // Create a texture to use for efficiently caching text on the GPU.
     let mut text_vertex_data = Vec::new();
 
-    let mut text_texture_cache = {
+    let (mut glyph_cache, mut text_texture_cache) = {
         const SCALE_TOLERANCE: f32 = 0.1;
         const POSITION_TOLERANCE: f32 = 0.1;
         let cache =
@@ -124,7 +124,8 @@ fn main() {
                 WantsUpdate => should_update = true,
             }
         }
-        use piston_window::Window;
+        use piston_window::{Window, G2d};
+        use piston_window::texture::UpdateTexture;
         let size = window.size();
         let (win_w, win_h) = (size.width as conrod::Scalar, size.height as conrod::Scalar);
         if let Some(e) = conrod::backend::piston::event::convert(event.clone(), win_w, win_h) {
@@ -140,13 +141,36 @@ fn main() {
                                     fn texture_from_image<T>(img: &T) -> &T {
                                         img
                                     };
+
+                                    // A function used for caching glyphs to the texture cache.
+                                    let cache_queued_glyphs = |graphics: &mut G2d,
+                                                               cache: &mut G2dTexture,
+                                                               rect: conrod::text::rt::Rect<u32>,
+                                                               data: &[u8]| {
+                                        let offset = [rect.min.x, rect.min.y];
+                                        let size = [rect.width(), rect.height()];
+                                        let format = piston_window::texture::Format::Rgba8;
+                                        let encoder = &mut graphics.encoder;
+                                        text_vertex_data.clear();
+                                        text_vertex_data.extend(data.iter()
+                                            .flat_map(|&b| vec![255, 255, 255, b]));
+                                        UpdateTexture::update(cache,
+                                                              encoder,
+                                                              format,
+                                                              &text_vertex_data[..],
+                                                              offset,
+                                                              size)
+                                            .expect("failed to update texture")
+                                    };
                                     conrod::backend::piston::draw::primitives(
-                                                                        primitives,
-                                                                        context,
-                                                                         graphics,
-                                                                         &mut text_texture_cache,
-                                                                         &image_map,
-                                                                         texture_from_image);
+                                                                    primitives,
+                                                                    context,
+                                                                    graphics,
+                                                                    &mut text_texture_cache,
+                                                                    &mut glyph_cache,
+                                                                    &image_map,
+                                                                    cache_queued_glyphs,
+                                                                    texture_from_image);
                                 }
                             })
                             .unwrap()
