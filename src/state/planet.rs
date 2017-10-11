@@ -25,56 +25,60 @@ use std::sync::Arc;
 use state::state_machine::{State, StateChange};
 use model::galaxy::{BodyAddress, BodyClass};
 use model::ship::Ship;
-use async::model_access::{Change,ModelAccess};
+use async::model_access::{Change, ModelAccess};
 use std::sync::mpsc::Sender;
 
-pub struct PlanetState{
-    ids:Ids,
+pub struct PlanetState {
+    ids: Ids,
     subject: BodyAddress,
-    previous_state:Option<Box<State>>,
-    model_access:ModelAccess,
-    change_queue:Option<Sender<Change>>
+    previous_state: Option<Box<State>>,
+    model_access: ModelAccess,
+    change_queue: Option<Sender<Change>>,
 }
-impl PlanetState{
-    pub fn new(
-        generator: conrod::widget::id::Generator,
-        subject:BodyAddress,
-        model_access:ModelAccess
-    )->PlanetState{
-        PlanetState{
-            ids:Ids::new(generator),
-            subject:subject,
-            previous_state:None,
-            model_access:model_access,
-            change_queue:None
+impl PlanetState {
+    pub fn new(generator: conrod::widget::id::Generator,
+               subject: BodyAddress,
+               model_access: ModelAccess)
+               -> PlanetState {
+        PlanetState {
+            ids: Ids::new(generator),
+            subject: subject,
+            previous_state: None,
+            model_access: model_access,
+            change_queue: None,
         }
     }
 }
-impl State for PlanetState{
-    fn enter(&mut self, previous:Box<State>) -> StateChange{
+impl State for PlanetState {
+    fn enter(&mut self, previous: Box<State>) -> StateChange {
         self.previous_state = Some(previous);
         self.change_queue = Some(self.model_access.start());
         None
     }
-    fn update(&mut self, ui:&mut conrod::UiCell) -> StateChange{
+    fn update(&mut self, ui: &mut conrod::UiCell) -> StateChange {
         // Construct our main `Canvas` tree.
         widget::Canvas::new().color(color::BLACK).set(self.ids.canvas_root, ui);
         let body = self.model_access.read_lock_model().galaxy[self.subject].clone(); // clone to descope lock
-        let bodyinfo = match &body.class{
-            &BodyClass::Rocky(ref habitat) =>{
+        let bodyinfo = match &body.class {
+            &BodyClass::Rocky(ref habitat) => {
                 let head_count = if let Some(ref pop) = habitat.population {
-                    pop.head_count  
-                } else {0};
+                    pop.head_count
+                } else {
+                    0
+                };
                 ("rocky world", head_count)
-            },
+            }
             &BodyClass::GasGiant => ("gass giant", 0),
-            &BodyClass::Star => ("star", 0)
+            &BodyClass::Star => ("star", 0),
         };
-        let text = format!("{} is a {} \n population {}", body.name, bodyinfo.0, bodyinfo.1);
+        let text = format!("{} is a {} \n population {}",
+                           body.name,
+                           bodyinfo.0,
+                           bodyinfo.1);
         widget::Text::new(&text)
             .color(color::LIGHT_RED)
             .middle_of(self.ids.canvas_root)
-            .align_text_left()
+            // .align_text_left()
             .line_spacing(10.0)
             .set(self.ids.text_intro, ui);
         for _ in widget::Button::new()
@@ -82,30 +86,26 @@ impl State for PlanetState{
             .label("Take me back")
             .color(color::DARK_CHARCOAL)
             .label_color(color::GRAY)
-            .set(self.ids.button_begin, ui){
-                let mut stored:Option<Box<State>> = None;
-                use std::mem::swap;
-                swap(&mut stored, &mut self.previous_state);
-                return stored;
-            }
-        if let BodyClass::Rocky(habitat) = body.class{
-            if let Some(owner)  = habitat.owner{
+            .set(self.ids.button_begin, ui) {
+            let mut stored: Option<Box<State>> = None;
+            use std::mem::swap;
+            swap(&mut stored, &mut self.previous_state);
+            return stored;
+        }
+        if let BodyClass::Rocky(habitat) = body.class {
+            if let Some(owner) = habitat.owner {
                 for _ in widget::Button::new()
                     .w_h(200.0, 80.0)
                     .label("build ship")
                     .color(color::DARK_CHARCOAL)
                     .label_color(color::GRAY)
-                    .set(self.ids.build_ship , ui){
-                        println!("building for {}", owner);
-                        self.change_queue.clone().map(|x| x.send(
-                            Change::Construct(
-                                Arc::new(
-                                    Ship::new(0,1000,self.subject)
-                                ),
-                                self.subject
-                            )
-                        ));
-                    }
+                    .set(self.ids.build_ship, ui) {
+                    println!("building for {}", owner);
+                    self.change_queue.clone().map(|x| {
+                        x.send(Change::Construct(Arc::new(Ship::new(0, 1000, self.subject)),
+                                                 self.subject))
+                    });
+                }
             }
         }
         None
@@ -114,7 +114,7 @@ impl State for PlanetState{
 
 // Generate a unique `WidgetId` for each widget.
 widget_ids! {
-    Ids {
+    struct Ids {
         canvas_root,
         text_intro,
         button_begin,

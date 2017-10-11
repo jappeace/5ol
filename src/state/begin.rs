@@ -24,20 +24,23 @@ use conrod;
 use state::state_machine::{State, StateChange};
 use state::conquest::ConquestState;
 
-pub struct BeginState{
-    ids:Ids
+pub struct BeginState {
+    ids: Ids,
 }
-impl BeginState{
-    pub fn new(generator: conrod::widget::id::Generator)->BeginState{
-        BeginState{ids:Ids::new(generator)}
+impl BeginState {
+    pub fn new(generator: conrod::widget::id::Generator) -> BeginState {
+        BeginState { ids: Ids::new(generator) }
     }
 }
 impl State for BeginState {
-    fn update(&mut self, ui:&mut conrod::UiCell) -> StateChange{
+    fn update(&mut self, ui: &mut conrod::UiCell) -> StateChange {
 
-        const INTRO_TEXT: &'static str = "After a long power struggle over now several generations, 
-    you Kim Ill Sung III has finally crushed all opposition.
-    With no-one else left daring to oppose you mankind puts it faith in you,
+        const INTRO_TEXT: &'static str =
+            "After a long power struggle over now several generations, 
+    you Kim Ill Sung III \
+             has finally crushed all opposition.
+    With no-one else left daring to oppose you \
+             mankind puts it faith in you,
     our dearest leader, and you look to the stars...
 ";
         // Construct our main `Canvas` tree.
@@ -53,16 +56,15 @@ impl State for BeginState {
             .label("Begin your conquest")
             .color(color::DARK_CHARCOAL)
             .label_color(color::GRAY)
-            .set(self.ids.button_begin, ui){
-                return Some(Box::new(ConquestState::new_game(ui.widget_id_generator())))
-            }
+            .set(self.ids.button_begin, ui) {
+            return Some(Box::new(ConquestState::new_game(ui.widget_id_generator())));
+        }
         None
     }
 }
-
 // Generate a unique `WidgetId` for each widget.
 widget_ids! {
-    Ids {
+    struct Ids {
         canvas_root,
         text_intro,
         button_begin

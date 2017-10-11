@@ -5,8 +5,8 @@ authors = ["jappie <superpwnzormegaman@gmail.com>"]
 license-file = "license.txt"
 
 [dependencies]
-conrod = "0.42.0"
-find_folder = "0.3.0"
-piston_window = "0.52"
-chrono = "0.2"
+conrod = {version = "0.55.0", features = ["piston"] }
+find_folder = "*"
+piston_window = "*"
+chrono = "*"
 petgraph = "*"

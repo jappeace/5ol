@@ -18,36 +18,38 @@
 // main file where we load the program and do the window loop
 // (I'm not a bliever of a sparse main file)
 #![allow(non_upper_case_globals)]
-#[macro_use] extern crate conrod;
+
+#[macro_use]
+extern crate conrod;
 extern crate find_folder;
 extern crate piston_window;
 extern crate chrono;
 extern crate petgraph;
 
-use piston_window::{EventLoop, OpenGL, PistonWindow, WindowSettings};
+use piston_window::{EventLoop, OpenGL, PistonWindow, WindowSettings, TextureSettings, G2dTexture};
 use piston_window::Event::*;
 
-mod state{
+mod state {
     pub mod state_machine;
     pub mod begin;
     pub mod conquest;
     pub mod planet;
 }
 mod geometry;
-mod model{
+mod model {
     pub mod root;
     pub mod galaxy;
     pub mod colony;
     pub mod ship;
 }
 mod camera;
-mod async{
+mod async {
     pub mod thread_status;
     pub mod logic_updater;
     pub mod model_access;
     pub mod pulser;
 }
-mod view{
+mod view {
     pub mod map_entities;
 }
 
@@ -66,28 +68,44 @@ fn main() {
 
     // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V3_2;
-    
+
     // Construct the window.
-    let mut window: PistonWindow =
-        WindowSettings::new(format!("{} - {}", NAME, VERSION), [WIDTH, HEIGHT])
-            .opengl(opengl).exit_on_esc(true).vsync(true).build().unwrap();
+    let mut window: PistonWindow = WindowSettings::new(format!("{} - {}", NAME, VERSION),
+                                                       [WIDTH, HEIGHT])
+        .opengl(opengl)
+        .exit_on_esc(true)
+        .vsync(true)
+        .build()
+        .unwrap();
     window.set_ups(60);
     window.set_max_fps(60);
 
     // construct our `Ui`.
-    let mut ui = conrod::UiBuilder::new().build();
+    let mut ui = conrod::UiBuilder::new([WIDTH as f64, HEIGHT as f64]).build();
 
     // Add a `Font` to the `Ui`'s `font::Map` from file.
-    let assets = find_folder::Search::KidsThenParents(3, 5).
-        for_folder(assetspath).expect("Couldn't find assets folder in root");
+    let assets = find_folder::Search::KidsThenParents(3, 5)
+        .for_folder(assetspath)
+        .expect("Couldn't find assets folder in root");
     let font_path = assets.join(font);
-    ui.fonts.insert_from_file(font_path).expect(
-        "Couldn't find the font" 
-    );
+    ui.fonts.insert_from_file(font_path).expect("Couldn't find the font");
 
     // Create a texture to use for efficiently caching text on the GPU.
-    let mut text_texture_cache =
-        conrod::backend::piston_window::GlyphCache::new(&mut window, WIDTH, HEIGHT);
+    let mut text_vertex_data = Vec::new();
+
+    let mut text_texture_cache = {
+        const SCALE_TOLERANCE: f32 = 0.1;
+        const POSITION_TOLERANCE: f32 = 0.1;
+        let cache =
+            conrod::text::GlyphCache::new(WIDTH, HEIGHT, SCALE_TOLERANCE, POSITION_TOLERANCE);
+        let buffer_len = WIDTH as usize * HEIGHT as usize;
+        let init = vec![128; buffer_len];
+        let settings = TextureSettings::new();
+        let factory = &mut window.factory;
+        let texture = G2dTexture::from_memory_alpha(factory, &init, WIDTH, HEIGHT, &settings)
+            .unwrap();
+        (cache, texture)
+    };
 
     // The image map describing each of our widget->image mappings (in our case, none).
     let image_map = conrod::image::Map::new();
@@ -99,34 +117,43 @@ fn main() {
     while let Some(event) = window.next() {
         {
             use state::state_machine::StateEvent::*;
-            match state_machine.poll_events(){
+            match state_machine.poll_events() {
                 Idle => {}
                 WantsUpdate => should_update = true,
             }
         }
-        if let Some(e) = conrod::backend::piston_window::convert_event(event.clone(), &window) {
+        if let Some(e) = conrod::backend::piston::event::convert(event.clone(), &window) {
             ui.handle_event(e);
         }
         match event.clone() {
-            Idle (_ ) => std::thread::yield_now(),
-            Render(_ ) => window.draw_2d(&event, |c, g| {
-                    if let Some(primitives) = ui.draw_if_changed() {
-                        fn texture_from_image<T>(img: &T) -> &T { img };
-                        conrod::backend::piston_window::draw(c, g, primitives,
-                                                             &mut text_texture_cache,
-                                                             &image_map,
-                                                             texture_from_image);
-                    }
-                }).unwrap(),
-            AfterRender(_ ) => continue,
-            Update(_ ) => if should_update {
-                state_machine.update(&mut ui.set_widgets());
-                should_update = false
-            },
+            Idle(_) => std::thread::yield_now(),
+            Render(_) => {
+                window.draw_2d(&event, |c, g| {
+                        if let Some(primitives) = ui.draw_if_changed() {
+                            fn texture_from_image<T>(img: &T) -> &T {
+                                img
+                            };
+                            conrod::backend::piston_window::draw(c,
+                                                                 g,
+                                                                 primitives,
+                                                                 &mut text_texture_cache,
+                                                                 &image_map,
+                                                                 texture_from_image);
+                        }
+                    })
+                    .unwrap()
+            }
+            AfterRender(_) => continue,
+            Update(_) => {
+                if should_update {
+                    state_machine.update(&mut ui.set_widgets());
+                    should_update = false
+                }
+            }
             Input(i) => {
                 state_machine.input(i);
                 should_update = true
-            },
+            }
         };
     }
 
