@@ -20,6 +20,7 @@
 // to their respective conrod view_id's.
 
 use petgraph::graph::NodeIndex;
+use conrod::widget::primitive::shape::oval::Full;
 use conrod::widget::{Oval};
 use conrod;
 use conrod::Color;
@@ -100,16 +101,16 @@ impl<Key,Shape,ViewStruct> ViewsMap<Key,Shape,ViewStruct>
 
 use conrod::widget::Rectangle;
 pub struct MapRenderer{
-    pub planets:ViewsMap<BodyAddress, Oval, PlanetView>,
-    ships:ViewsMap<ShipID, Oval, ShipView>,
+    pub planets:ViewsMap<BodyAddress, Oval<Full>, PlanetView>,
+    ships:ViewsMap<ShipID, Oval<Full>, ShipView>,
     selected:ViewsMap<usize,Rectangle,SelectionView>,
     player:PlayerID
 }
 impl MapRenderer{
     pub fn new() -> MapRenderer{
         MapRenderer{
-            planets:ViewsMap::<BodyAddress, Oval, PlanetView>::new(PlanetView::new),
-            ships:ViewsMap::<ShipID, Oval, ShipView>::new(ShipView::new),
+            planets:ViewsMap::<BodyAddress, Oval<Full>, PlanetView>::new(PlanetView::new),
+            ships:ViewsMap::<ShipID, Oval<Full>, ShipView>::new(ShipView::new),
             selected:ViewsMap::<usize,Rectangle,SelectionView>::new(SelectionView::new),
             player:0
         }
@@ -140,7 +141,7 @@ impl ShipView{
     }
 }
 const black:Color = Color::Rgba(0.0,0.0,0.0,1.0);
-impl View<Oval> for ShipView{
+impl View<Oval<Full>> for ShipView{
     fn get_view_id(&self)-> Option<NodeIndex<u32>>{
         self.view_id
     }
@@ -150,7 +151,7 @@ impl View<Oval> for ShipView{
     fn get_world_position(&self, game_state:&GameModel) -> Position{
         game_state.ships[self.ship_id].movement.calc_position(&game_state.time, &game_state.galaxy)
     }
-    fn get_widget(&self) -> Oval{
+    fn get_widget(&self) -> Oval<Full>{
         Oval::fill([5.0,5.0]).color(black)
     }
 }
@@ -163,7 +164,7 @@ impl PlanetView{
         PlanetView{view_id:None,address:address}
     }
 }
-impl View<Oval> for PlanetView{
+impl View<Oval<Full>> for PlanetView{
     fn get_view_id(&self)-> Option<NodeIndex<u32>>{
         self.view_id
     }
@@ -173,7 +174,7 @@ impl View<Oval> for PlanetView{
     fn get_world_position(&self, game_state:&GameModel) -> Position{
         game_state.galaxy[self.address].calc_position(&game_state.time)
     }
-    fn get_widget(&self) -> Oval{
+    fn get_widget(&self) -> Oval<Full>{
         Oval::fill([10.0,10.0])
     }
 }

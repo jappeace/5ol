@@ -19,10 +19,14 @@
 
 use state::state_machine::{State, StateChange, StateEvent};
 use piston_window::Input;
+use piston_window::Button;
+use piston_window::ButtonArgs;
+use piston_window::MouseButton;
+use piston_window::Button::Keyboard;
+use piston_window::keyboard::Key::*;
+use piston_window::Motion::{MouseScroll, MouseCursor};
 use conrod;
 use conrod::Dimensions;
-use conrod::event::Input::Press;
-use conrod::event::Input::Release;
 use chrono::Duration;
 use std::sync::{Arc, RwLock};
 
@@ -187,20 +191,14 @@ impl State for ConquestState {
         widget::Text::new(&money)
             .color(color::LIGHT_RED)
             .top_left_with_margin_on(self.ids.canvas_root, 10.0)
-            .align_text_left()
+            .left_justify()
             .line_spacing(10.0)
             .set(self.ids.text_money, ui);
         None
     }
     fn input(&mut self, input: Input) -> StateChange {
-        use piston_window::Input::*;
-        use piston_window::Button;
-        use piston_window::Button::Keyboard;
-        use piston_window::keyboard::Key::*;
-        use piston_window::Motion::{MouseScroll, MouseCursor};
-        use conrod::input::MouseButton;
         match input {
-            Press(Keyboard(key)) => {
+            Input::Button(ButtonArgs{state: Press, button:Keyboard(key), ..}) => {
                 match key {
                     W => self.camera.translate(MoveDirection::Up),
                     S => self.camera.translate(MoveDirection::Down),
@@ -216,8 +214,8 @@ impl State for ConquestState {
                     _ => {}
                 }
             }
-            Move(MouseCursor(x, y)) => self.last_mouse_position = Position::new(x, y),
-            Move(MouseScroll(_, direction)) => {
+            Input::Move(MouseCursor(x, y)) => self.last_mouse_position = Position::new(x, y),
+            Input::Move(MouseScroll(_, direction)) => {
                 self.camera.zoom(self.last_screen_size,
                                  if direction == 1.0 {
                                      ZoomDirection::In
@@ -226,10 +224,10 @@ impl State for ConquestState {
                                  },
                                  self.last_mouse_position)
             }
-            Press(Button::Mouse(MouseButton::Left)) => {
+            Input::Button(ButtonArgs{state: Press, button:Button::Mouse(MouseButton::Left), ..}) => {
                 self.drag_mouse_start = Some(self.last_mouse_position)
             }
-            Release(Button::Mouse(MouseButton::Left)) => {
+            Input::Button(ButtonArgs{state: Release, button:Button::Mouse(MouseButton::Left), ..}) => {
                 if let Some(rect) = self.ceate_dragtengle_maybe() {
                     let projection = self.camera.create_projection(self.last_screen_size);
                     let projected_rect = Rectangle {

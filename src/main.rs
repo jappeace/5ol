@@ -69,16 +69,17 @@ fn main() {
     const HEIGHT: u32 = 600;
 
     // Change this to OpenGL::V2_1 if not working.
-    let opengl = OpenGL::V3_2;
+    let opengl = OpenGL::V3_3;
 
     // Construct the window.
-    let mut window: PistonWindow = WindowSettings::new(format!("{} - {}", NAME, VERSION),
+    let mut window: PistonWindow = PistonWindow::new(opengl, 0, WindowSettings::new(format!("{} - {}", NAME, VERSION),
                                                        [WIDTH, HEIGHT])
-        .opengl(opengl)
-        .exit_on_esc(true)
+        .opengl(opengl) // If not working, try `OpenGL::V2_1`.
+        .samples(4)
+        .exit_on_esc(true).srgb(false)
         .vsync(true)
         .build()
-        .unwrap();
+        .expect("Could not get gl context"));
     window.set_ups(60);
     window.set_max_fps(60);
 
@@ -131,6 +132,7 @@ fn main() {
         if let Some(e) = conrod::backend::piston::event::convert(event.clone(), win_w, win_h) {
             ui.handle_event(e);
         }
+
         match event.clone() {
             Loop(loop_event) => {
                 match loop_event {
@@ -187,6 +189,9 @@ fn main() {
             Input(i) => {
                 state_machine.input(i);
                 should_update = true
+            }
+            Custom(..) => {
+                println!("Custom event! not sure what to do with these");
             }
         };
     }

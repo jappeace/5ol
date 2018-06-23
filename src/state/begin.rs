@@ -48,7 +48,7 @@ impl State for BeginState {
         widget::Text::new(INTRO_TEXT)
             .color(color::LIGHT_RED)
             .middle_of(self.ids.canvas_root)
-            .align_text_left()
+            .left_justify()
             .line_spacing(10.0)
             .set(self.ids.text_intro, ui);
         for _ in widget::Button::new()
