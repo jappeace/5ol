@@ -10,6 +10,7 @@ out of the hardware, including paralization wherever it makes sense.
 * Dev log
 
 ** I want to set a small scope
+    <2018-09-05 wo>
    Currently the scope is unbounded. This makes it a massive project.
    Let's focus on getting sol and alphacentauri functioning.
    This is an MVP description:
@@ -29,6 +30,8 @@ out of the hardware, including paralization wherever it makes sense.
    (although I don't think the above will suffice for that).
 
 ** found this again.
+    <2018-06-24 zo>
+
 Lets record my strugles, I havent touched this for over half a year.
 
 So I got it to compile, then run after solving this runtime bug: https://github.com/PistonDevelopers/piston/issues/1202
