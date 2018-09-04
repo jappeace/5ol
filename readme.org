@@ -8,6 +8,26 @@ This game is implemented in Rust to get every little bit of performence
 out of the hardware, including paralization wherever it makes sense.
 
 * Dev log
+
+** I want to set a small scope
+   Currently the scope is unbounded. This makes it a massive project.
+   Let's focus on getting sol and alphacentauri functioning.
+   This is an MVP description:
+   
+   - We have player starting in sol, and have an "enemy" in alpha centauri.
+   - Two resources, money and pop, pop generates money each tick, pop goes up to a limit.
+   - Can build a single ship type.
+   - Can move ships around.
+   - Ships can attack other players ships
+   - Ships can attack planets with pop.
+   - If planet dead it's game over.
+
+   I just want to get something usuable asap, maybe I'll try selling it.
+   Although this is probably still not accaptable as a product.
+   It is a good starting point.
+   Consumers have grown to accept things such as pre-alpha, maybe I should aim for something like that
+   (although I don't think the above will suffice for that).
+
 ** found this again.
 Lets record my strugles, I havent touched this for over half a year.
 
