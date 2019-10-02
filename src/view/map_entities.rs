@@ -22,19 +22,17 @@
 use petgraph::graph::NodeIndex;
 use conrod::widget::primitive::shape::oval::Full;
 use conrod::widget::{Oval};
-use conrod;
-use conrod::Color;
-use conrod::{Colorable, Widget, Positionable};
+use conrod::*;
 
-use model::root::*;
-use model::ship::ShipID;
-use model::galaxy::*;
-use geometry::Position;
-use camera::Projection;
+use crate::model::*;
+use crate::model::ship::ShipID;
+use crate::model::galaxy::*;
+use crate::geometry::Position;
+use crate::camera::Projection;
 
 pub trait View<T:Widget + Positionable> {
     fn get_view_id(&self)-> Option<NodeIndex<u32>>;
-    fn set_view_id(&mut self, NodeIndex<u32>);
+    fn set_view_id(&mut self, _:NodeIndex<u32>);
     fn get_world_position(&self, game_state:&GameModel) -> Position;
     fn get_widget(&self) -> T;
     fn is_visible(&self, projection:&Projection, game_state:&GameModel) -> bool{

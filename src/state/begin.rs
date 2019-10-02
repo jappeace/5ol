@@ -18,11 +18,11 @@
 // this file describes the first state of the game, showing a little welcome
 // message.
 
-use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget};
+use conrod::{widget_ids, color, widget, Colorable, Labelable, Positionable, Sizeable, Widget};
 use conrod;
 
-use state::state_machine::{State, StateChange};
-use state::conquest::ConquestState;
+use super::state_machine::{State, StateChange};
+use super::conquest::ConquestState;
 
 pub struct BeginState {
     ids: Ids,

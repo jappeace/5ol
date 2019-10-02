@@ -21,8 +21,8 @@
 
 
 use chrono::Duration;
-use geometry::*;
-use model::colony::Colony;
+use crate::geometry::*;
+use crate::model::colony::Colony;
 use std::usize;
 
 // austronomical unit, distance from the earth to the sun. Turns out the milky
@@ -60,7 +60,7 @@ impl StellarBody{
     }
     // create a stellar body with properties of earth (in game)
     pub fn new_earthlike(name:&'static str) -> StellarBody{
-        use model::colony::*;
+        use crate::model::colony::*;
         StellarBody::new(
             BodyClass::Rocky(
                 Colony::new_inhabited(

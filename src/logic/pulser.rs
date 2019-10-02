@@ -20,9 +20,9 @@
 // ui thread.
 
 use std::sync::{Arc, Mutex};
-use state::state_machine::StateEvent;
+use crate::state::state_machine::StateEvent;
 
-use async::thread_status::ThreadControll;
+use super::thread_status::ThreadControll;
 
 pub struct Pulser{
     pub event:Arc<Mutex<StateEvent>>,
@@ -50,7 +50,7 @@ impl Pulser{
     }
     pub fn start(&self) {
         let event = self.event.clone();
-        self.controll.execute_async(move ||{
+        self.controll.execute_logic(move ||{
             *event.lock().expect("posining on set event") = StateEvent::WantsUpdate;
         });
     }

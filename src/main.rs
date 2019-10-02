@@ -14,49 +14,33 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see <http://www.gnu.org/licenses/>.
 
-
 // main file where we load the program and do the window loop
 // (I'm not a bliever of a sparse main file)
 #![allow(non_upper_case_globals)]
 
 #[macro_use]
-extern crate conrod;
-extern crate find_folder;
-extern crate piston_window;
-extern crate chrono;
-extern crate petgraph;
-extern crate input;
-
-use piston_window::{EventLoop, OpenGL, PistonWindow, WindowSettings, TextureSettings, G2dTexture};
-use piston_window::Event::*;
+use piston_window::{
+    Size, Event, EventLoop, OpenGL, PistonWindow, WindowSettings, TextureSettings, G2dTexture,
+};
+use conrod::Ui;
+use piston_window::context::Context;
 use input::Loop::*;
+use piston_window::Event::*;
+use conrod::image::Map;
 
-mod state {
-    pub mod state_machine;
-    pub mod begin;
-    pub mod conquest;
-    pub mod planet;
-}
-mod geometry;
-mod model {
-    pub mod root;
-    pub mod galaxy;
-    pub mod colony;
-    pub mod ship;
-}
-mod camera;
-mod async {
-    pub mod thread_status;
-    pub mod logic_updater;
-    pub mod model_access;
-    pub mod pulser;
-}
-mod view {
-    pub mod map_entities;
-}
+pub mod camera;
+pub mod geometry;
+pub mod logic;
+pub mod model;
+pub mod state;
+pub mod view;
 
-use state::state_machine::StateMachine;
 use state::begin::BeginState;
+use state::state_machine::StateMachine;
+
+use piston_window::texture::UpdateTexture;
+use piston_window::{G2d, Window};
+use conrod::text::GlyphCache;
 
 const assetspath: &'static str = "assets";
 const font: &'static str = "fonts/NotoSans/NotoSans-Regular.ttf";
@@ -72,14 +56,17 @@ fn main() {
     let opengl = OpenGL::V3_3;
 
     // Construct the window.
-    let mut window: PistonWindow = PistonWindow::new(opengl, 0, WindowSettings::new(format!("{} - {}", NAME, VERSION),
-                                                       [WIDTH, HEIGHT])
-        .opengl(opengl) // If not working, try `OpenGL::V2_1`.
-        .samples(4)
-        .exit_on_esc(true).srgb(false)
-        .vsync(true)
-        .build()
-        .expect("Could not get gl context"));
+    let mut window: PistonWindow = PistonWindow::new(
+        opengl,
+        0,
+        WindowSettings::new(format!("{} - {}", NAME, VERSION), [WIDTH, HEIGHT])
+            .samples(4)
+            .exit_on_esc(true)
+            .srgb(false)
+            .vsync(true)
+            .build()
+            .expect("Could not get gl context"),
+    );
     window.set_ups(60);
     window.set_max_fps(60);
 
@@ -91,7 +78,9 @@ fn main() {
         .for_folder(assetspath)
         .expect("Couldn't find assets folder in root");
     let font_path = assets.join(font);
-    ui.fonts.insert_from_file(font_path).expect("Couldn't find the font");
+    ui.fonts
+        .insert_from_file(font_path)
+        .expect("Couldn't find the font");
 
     // Create a texture to use for efficiently caching text on the GPU.
     let mut text_vertex_data = Vec::new();
@@ -100,18 +89,19 @@ fn main() {
         const SCALE_TOLERANCE: f32 = 0.1;
         const POSITION_TOLERANCE: f32 = 0.1;
         let cache =
-            conrod::text::GlyphCache::new(WIDTH, HEIGHT, SCALE_TOLERANCE, POSITION_TOLERANCE);
+            GlyphCache::new(WIDTH, HEIGHT, SCALE_TOLERANCE, POSITION_TOLERANCE);
         let buffer_len = WIDTH as usize * HEIGHT as usize;
         let init = vec![128; buffer_len];
         let settings = TextureSettings::new();
         let factory = &mut window.factory;
-        let texture = G2dTexture::from_memory_alpha(factory, &init, WIDTH, HEIGHT, &settings)
-            .unwrap();
+        let texture =
+            G2dTexture::from_memory_alpha(factory, &init, WIDTH, HEIGHT, &settings).unwrap();
         (cache, texture)
     };
 
+
     // The image map describing each of our widget->image mappings (in our case, none).
-    let image_map = conrod::image::Map::new();
+    let image_map = Map::new();
 
     let mut state_machine = StateMachine::new();
     state_machine.change_state(Box::new(BeginState::new(ui.widget_id_generator())));
@@ -125,67 +115,30 @@ fn main() {
                 WantsUpdate => should_update = true,
             }
         }
-        use piston_window::{Window, G2d};
-        use piston_window::texture::UpdateTexture;
-        let size = window.size();
-        let (win_w, win_h) = (size.width as conrod::Scalar, size.height as conrod::Scalar);
-        if let Some(e) = conrod::backend::piston::event::convert(event.clone(), win_w, win_h) {
-            ui.handle_event(e);
-        }
+        handle_piston_events(&mut ui, &event, window.size());
 
         match event.clone() {
-            Loop(loop_event) => {
-                match loop_event {
-                    Idle(_) => std::thread::yield_now(),
-                    Render(_) => {
-                        window.draw_2d(&event, |context, graphics| {
-                                if let Some(primitives) = ui.draw_if_changed() {
-                                    fn texture_from_image<T>(img: &T) -> &T {
-                                        img
-                                    };
-
-                                    // A function used for caching glyphs to the texture cache.
-                                    let cache_queued_glyphs = |graphics: &mut G2d,
-                                                               cache: &mut G2dTexture,
-                                                               rect: conrod::text::rt::Rect<u32>,
-                                                               data: &[u8]| {
-                                        let offset = [rect.min.x, rect.min.y];
-                                        let size = [rect.width(), rect.height()];
-                                        let format = piston_window::texture::Format::Rgba8;
-                                        let encoder = &mut graphics.encoder;
-                                        text_vertex_data.clear();
-                                        text_vertex_data.extend(data.iter()
-                                            .flat_map(|&b| vec![255, 255, 255, b]));
-                                        UpdateTexture::update(cache,
-                                                              encoder,
-                                                              format,
-                                                              &text_vertex_data[..],
-                                                              offset,
-                                                              size)
-                                            .expect("failed to update texture")
-                                    };
-                                    conrod::backend::piston::draw::primitives(
-                                                                    primitives,
-                                                                    context,
-                                                                    graphics,
-                                                                    &mut text_texture_cache,
-                                                                    &mut glyph_cache,
-                                                                    &image_map,
-                                                                    cache_queued_glyphs,
-                                                                    texture_from_image);
-                                }
-                            })
-                            .unwrap()
-                    }
-                    AfterRender(_) => continue,
-                    Update(_) => {
-                        if should_update {
-                            state_machine.update(&mut ui.set_widgets());
-                            should_update = false
-                        }
+            Loop(loop_event) => match loop_event {
+                Idle(_) => std::thread::yield_now(),
+                Render(_) => {
+                    window.draw_2d(&event, |context, mut graphics| {
+                        render(&mut ui,
+                           &mut text_vertex_data,
+                           &mut text_texture_cache
+                           ,&mut glyph_cache
+                           ,& image_map
+                           , context
+                           , &mut graphics)
+                        }).unwrap();
+                }
+                AfterRender(_) => continue,
+                Update(_) => {
+                    if should_update {
+                        state_machine.update(&mut ui.set_widgets());
+                        should_update = false
                     }
                 }
-            }
+            },
             Input(i) => {
                 state_machine.input(i);
                 should_update = true
@@ -195,5 +148,57 @@ fn main() {
             }
         };
     }
+}
 
+fn render ( ui: &mut Ui
+          , text_vertex_data: &mut Vec<u8>
+          , mut text_texture_cache: &mut G2dTexture
+          , mut glyph_cache: &mut GlyphCache
+          , image_map: &Map<G2dTexture> // not used atm
+          , context:  Context
+          , graphics: &mut G2d
+          ) {
+            if let Some(primitives) = ui.draw_if_changed() {
+                // A function used for caching glyphs to the texture cache.
+                let cache_queued_glyphs = |graphics: &mut G2d,
+                                           cache: &mut G2dTexture,
+                                           rect: conrod::text::rt::Rect<u32>,
+                                           data: &[u8]| {
+                    let offset = [rect.min.x, rect.min.y];
+                    let size = [rect.width(), rect.height()];
+                    let format = piston_window::texture::Format::Rgba8;
+                    let encoder = &mut graphics.encoder;
+                    text_vertex_data.clear();
+                    text_vertex_data.extend(data.iter().flat_map(|&b| vec![255, 255, 255, b]));
+                    UpdateTexture::update(
+                        cache,
+                        encoder,
+                        format,
+                        &text_vertex_data[..],
+                        offset,
+                        size,
+                    )
+                    .expect("failed to update texture")
+                };
+                conrod::backend::piston::draw::primitives(
+                    primitives,
+                    context,
+                    graphics,
+                    &mut text_texture_cache,
+                    &mut glyph_cache,
+                    &image_map,
+                    cache_queued_glyphs,
+                    texture_from_image,
+                );
+            }
+}
+fn texture_from_image<T>(img: &T) -> &T {
+                                     img
+}
+
+fn handle_piston_events(ui: &mut Ui, event: &Event, size: Size) {
+    let (win_w, win_h) = (size.width as conrod::Scalar, size.height as conrod::Scalar);
+    if let Some(e) = conrod::backend::piston::event::convert(event.clone(), win_w, win_h) {
+        ui.handle_event(e);
+    }
 }

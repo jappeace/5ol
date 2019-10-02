@@ -22,8 +22,8 @@
 
 // this file models the places where people live
 use chrono::Duration;
-use model::galaxy::{Earths,BodyAddress };
-use model::root::{GameModel};
+use super::galaxy::{Earths,BodyAddress };
+use super::{GameModel};
 use std::usize;
 use std::sync::Arc;
 
@@ -74,7 +74,7 @@ impl Colony{
     }
 }
 
-pub type AConstructable = Arc<Constructable + Send + Sync>;
+pub type AConstructable = Arc<dyn Constructable + Send + Sync>;
 #[derive(Clone)]
 pub struct Construction{
     pub progress:Duration,

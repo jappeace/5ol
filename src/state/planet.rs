@@ -14,32 +14,32 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see <http://www.gnu.org/licenses/>.
 
-
 // this file describes the first state of the game, showing a little welcome
 // message.
 
-use conrod::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget};
 use conrod;
+use conrod::{color, widget, widget_ids, Colorable, Labelable, Positionable, Sizeable, Widget};
 use std::sync::Arc;
 
-use state::state_machine::{State, StateChange};
-use model::galaxy::{BodyAddress, BodyClass};
-use model::ship::Ship;
-use async::model_access::{Change, ModelAccess};
+use crate::logic::model_access::{Change, ModelAccess};
+use crate::model::galaxy::{BodyAddress, BodyClass};
+use crate::model::ship::Ship;
+use crate::state::state_machine::{State, StateChange};
 use std::sync::mpsc::Sender;
 
 pub struct PlanetState {
     ids: Ids,
     subject: BodyAddress,
-    previous_state: Option<Box<State>>,
+    previous_state: Option<Box<dyn State>>,
     model_access: ModelAccess,
     change_queue: Option<Sender<Change>>,
 }
 impl PlanetState {
-    pub fn new(generator: conrod::widget::id::Generator,
-               subject: BodyAddress,
-               model_access: ModelAccess)
-               -> PlanetState {
+    pub fn new(
+        generator: conrod::widget::id::Generator,
+        subject: BodyAddress,
+        model_access: ModelAccess,
+    ) -> PlanetState {
         PlanetState {
             ids: Ids::new(generator),
             subject: subject,
@@ -50,14 +50,16 @@ impl PlanetState {
     }
 }
 impl State for PlanetState {
-    fn enter(&mut self, previous: Box<State>) -> StateChange {
+    fn enter(&mut self, previous: Box<dyn State>) -> StateChange {
         self.previous_state = Some(previous);
         self.change_queue = Some(self.model_access.start());
         None
     }
     fn update(&mut self, ui: &mut conrod::UiCell) -> StateChange {
         // Construct our main `Canvas` tree.
-        widget::Canvas::new().color(color::BLACK).set(self.ids.canvas_root, ui);
+        widget::Canvas::new()
+            .color(color::BLACK)
+            .set(self.ids.canvas_root, ui);
         let body = self.model_access.read_lock_model().galaxy[self.subject].clone(); // clone to descope lock
         let bodyinfo = match &body.class {
             &BodyClass::Rocky(ref habitat) => {
@@ -71,10 +73,10 @@ impl State for PlanetState {
             &BodyClass::GasGiant => ("gass giant", 0),
             &BodyClass::Star => ("star", 0),
         };
-        let text = format!("{} is a {} \n population {}",
-                           body.name,
-                           bodyinfo.0,
-                           bodyinfo.1);
+        let text = format!(
+            "{} is a {} \n population {}",
+            body.name, bodyinfo.0, bodyinfo.1
+        );
         widget::Text::new(&text)
             .color(color::LIGHT_RED)
             .middle_of(self.ids.canvas_root)
@@ -86,8 +88,9 @@ impl State for PlanetState {
             .label("Take me back")
             .color(color::DARK_CHARCOAL)
             .label_color(color::GRAY)
-            .set(self.ids.button_begin, ui) {
-            let mut stored: Option<Box<State>> = None;
+            .set(self.ids.button_begin, ui)
+        {
+            let mut stored: Option<Box<dyn State>> = None;
             use std::mem::swap;
             swap(&mut stored, &mut self.previous_state);
             return stored;
@@ -99,11 +102,14 @@ impl State for PlanetState {
                     .label("build ship")
                     .color(color::DARK_CHARCOAL)
                     .label_color(color::GRAY)
-                    .set(self.ids.build_ship, ui) {
+                    .set(self.ids.build_ship, ui)
+                {
                     println!("building for {}", owner);
                     self.change_queue.clone().map(|x| {
-                        x.send(Change::Construct(Arc::new(Ship::new(0, 1000, self.subject)),
-                                                 self.subject))
+                        x.send(Change::Construct(
+                            Arc::new(Ship::new(0, 1000, self.subject)),
+                            self.subject,
+                        ))
                     });
                 }
             }

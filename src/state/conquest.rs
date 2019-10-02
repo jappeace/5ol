@@ -14,34 +14,39 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see <http://www.gnu.org/licenses/>.
 
-
 // this file describes the main game where you stare at a map of the galaxy
 
-use state::state_machine::{State, StateChange, StateEvent};
-use piston_window::Input;
-use piston_window::Button;
-use piston_window::ButtonArgs;
-use piston_window::MouseButton;
-use piston_window::Button::Keyboard;
-use piston_window::keyboard::Key::*;
-use piston_window::Motion::{MouseScroll, MouseCursor};
-use conrod;
-use conrod::Dimensions;
 use chrono::Duration;
+use conrod::widget::id::Generator;
+use conrod::{color, widget, widget_ids, Dimensions, UiCell};
+use piston_window::keyboard::Key::*;
+use piston_window::Button;
+use piston_window::Button::Keyboard;
+use piston_window::ButtonArgs;
+use piston_window::Input;
+use piston_window::Motion::{MouseCursor, MouseScroll};
+use piston_window::MouseButton;
 use std::sync::{Arc, RwLock};
+use conrod::widget::primitive::shape::rectangle::Rectangle as WidgetRekt;
 
-use geometry::*;
-use model::root::*;
-use model::colony::*;
-use model::galaxy::*;
-use model::ship::*;
-use camera::*;
-use async::pulser::Pulser;
-use async::logic_updater::Updater;
-use async::model_access::Change;
-use async::thread_status::Status;
-use state::planet::PlanetState;
-use view::map_entities::{MapRenderer, View};
+use super::planet::PlanetState;
+use crate::camera::*;
+use crate::geometry::{Position, center, Rectangle};
+use crate::logic::logic_updater::Updater;
+use crate::logic::model_access::Change;
+use crate::logic::pulser::Pulser;
+use crate::logic::thread_status::Status;
+use crate::model::colony::*;
+use crate::model::galaxy::*;
+use crate::model::ship::*;
+use crate::model::*;
+use crate::state::state_machine::{State, StateChange, StateEvent};
+use crate::view::map_entities::{MapRenderer, View};
+use conrod::color::Colorable;
+use conrod::position::Sizeable;
+use conrod::widget::Widget;
+use conrod::position::Positionable;
+use conrod::Labelable;
 
 pub struct ConquestState {
     ids: Ids,
@@ -54,8 +59,9 @@ pub struct ConquestState {
     drag_mouse_start: Option<Position>,
     last_screen_size: Dimensions,
 }
+
 impl State for ConquestState {
-    fn enter(&mut self, _: Box<State>) -> StateChange {
+    fn enter(&mut self, _: Box<dyn State>) -> StateChange {
         self.updater.start();
         self.updater.controll.set_status(Status::Paused);
         self.pulser.start();
@@ -64,11 +70,11 @@ impl State for ConquestState {
     fn poll_event(&self) -> StateEvent {
         self.pulser.get_event()
     }
-    fn update(&mut self, ui: &mut conrod::UiCell) -> StateChange {
-        use conrod::{color, widget, Colorable, Widget, Positionable, Labelable, Sizeable};
+    fn update(&mut self, ui: &mut UiCell) -> StateChange {
         self.last_screen_size = ui.window_dim();
         let canvas = widget::Canvas::new();
-        canvas.color(color::BLUE)
+        canvas
+            .color(color::BLUE)
             .crop_kids()
             .set(self.ids.canvas_root, ui);
 
@@ -77,7 +83,7 @@ impl State for ConquestState {
 
         if let Some(rect) = self.ceate_dragtengle_maybe() {
             let corner = rect.center() - Position::arr(self.last_screen_size) / Position::i(2);
-            conrod::widget::Rectangle::outline([rect.width(), rect.height()])
+            WidgetRekt::outline([rect.width(), rect.height()])
                 .x(-corner.x)
                 .y(corner.y)
                 .set(self.ids.rect_select, ui);
@@ -90,34 +96,32 @@ impl State for ConquestState {
         let projection = self.camera.create_projection(self.last_screen_size);
 
         self.map_renderer.render(ui, &projection, &model);
-        for (body_address, view_id) in
-            self.map_renderer
-                .planets
-                .map
-                .iter()
-                .filter_map(|kv| if let Some(view_id) = kv.1.get_view_id() {
-                    Some((kv.0, view_id))
-                } else {
-                    None
-                }) {
+        for (body_address, view_id) in self.map_renderer.planets.map.iter().filter_map(|kv| {
+            if let Some(view_id) = kv.1.get_view_id() {
+                Some((kv.0, view_id))
+            } else {
+                None
+            }
+        }) {
             let mut should_return = false;
             {
                 let input = ui.widget_input(view_id);
                 if let Some(ref mouse) = input.mouse() {
                     let buttons = mouse.buttons;
-                    use conrod::input::state::mouse::ButtonPosition;
-                    if let ButtonPosition::Down(_, _) = *buttons.left() {
+                    if buttons.left().is_down() {
                         should_return = true;
                     }
-                    if let ButtonPosition::Down(_, _) = *buttons.right() {
+                    if buttons.right().is_down() {
                         self.camera.track_body = Some(body_address.clone());
                     }
                 }
             }
             if should_return {
-                return Some(Box::new(PlanetState::new(ui.widget_id_generator(),
-                                                      body_address.clone(),
-                                                      self.updater.model_writer.clone())));
+                return Some(Box::new(PlanetState::new(
+                    ui.widget_id_generator(),
+                    body_address.clone(),
+                    self.updater.model_writer.clone(),
+                )));
             }
         }
 
@@ -131,25 +135,29 @@ impl State for ConquestState {
             .label(pausedlabel)
             .color(color::DARK_CHARCOAL)
             .label_color(color::GRAY)
-            .set(self.ids.button_pause, ui) {
+            .set(self.ids.button_pause, ui)
+        {
             self.updater.controll.toggle_pause();
         }
 
         let mut previous = self.ids.button_pause;
-        for &(label, speed, id) in
-            [("1>", 2000, self.ids.button_speed_one),
-             ("2>", 500, self.ids.button_speed_two),
-             ("3>", 200, self.ids.button_speed_three),
-             ("4>", 50, self.ids.button_speed_four),
-             ("5>", 0, self.ids.button_speed_five)]
-                .iter() {
+        for &(label, speed, id) in [
+            ("1>", 2000, self.ids.button_speed_one),
+            ("2>", 500, self.ids.button_speed_two),
+            ("3>", 200, self.ids.button_speed_three),
+            ("4>", 50, self.ids.button_speed_four),
+            ("5>", 0, self.ids.button_speed_five),
+        ]
+        .iter()
+        {
             for _ in widget::Button::new()
                 .w_h(30.0, 30.0)
                 .left_from(previous, 10.0)
                 .label(label)
                 .color(color::DARK_CHARCOAL)
                 .label_color(color::GRAY)
-                .set(id, ui) {
+                .set(id, ui)
+            {
                 self.updater.controll.set_pace(speed);
             }
             previous = id;
@@ -161,16 +169,22 @@ impl State for ConquestState {
             .label("w")
             .color(color::DARK_CHARCOAL)
             .label_color(color::GRAY)
-            .set(self.ids.button_granu_weeks, ui) {
+            .set(self.ids.button_granu_weeks, ui)
+        {
             self.updater.set_granuality(Duration::weeks);
         }
         previous = self.ids.button_granu_weeks;
-        let buttons: [(&'static str, fn(i64) -> Duration, _); 5] =
-            [("d", Duration::days, self.ids.button_granu_days),
-             ("h", Duration::hours, self.ids.button_granu_hours),
-             ("m", Duration::minutes, self.ids.button_granu_minutes),
-             ("s", Duration::seconds, self.ids.button_granu_seconds),
-             ("ms", Duration::milliseconds, self.ids.button_granu_milliseconds)];
+        let buttons: [(&'static str, fn(i64) -> Duration, _); 5] = [
+            ("d", Duration::days, self.ids.button_granu_days),
+            ("h", Duration::hours, self.ids.button_granu_hours),
+            ("m", Duration::minutes, self.ids.button_granu_minutes),
+            ("s", Duration::seconds, self.ids.button_granu_seconds),
+            (
+                "ms",
+                Duration::milliseconds,
+                self.ids.button_granu_milliseconds,
+            ),
+        ];
         for &(label, function, id) in buttons.iter() {
             for _ in widget::Button::new()
                 .w_h(30.0, 30.0)
@@ -179,15 +193,18 @@ impl State for ConquestState {
                 .label(label)
                 .color(color::DARK_CHARCOAL)
                 .label_color(color::GRAY)
-                .set(id, ui) {
+                .set(id, ui)
+            {
                 self.updater.set_granuality(function);
             }
             previous = id;
         }
 
-        let money = format!("money: {} \n time: {}",
-                            model.players[0].money,
-                            time.num_weeks());
+        let money = format!(
+            "money: {} \n time: {}",
+            model.players[0].money,
+            time.num_weeks()
+        );
         widget::Text::new(&money)
             .color(color::LIGHT_RED)
             .top_left_with_margin_on(self.ids.canvas_root, 10.0)
@@ -198,36 +215,44 @@ impl State for ConquestState {
     }
     fn input(&mut self, input: Input) -> StateChange {
         match input {
-            Input::Button(ButtonArgs{state: Press, button:Keyboard(key), ..}) => {
-                match key {
-                    W => self.camera.translate(MoveDirection::Up),
-                    S => self.camera.translate(MoveDirection::Down),
-                    A => self.camera.translate(MoveDirection::Left),
-                    D => self.camera.translate(MoveDirection::Right),
-                    Space => self.updater.controll.toggle_pause(),
-                    Return => {
-                        self.camera.width = start_cam_width;
-                        self.camera.height = start_cam_height;
-                        self.camera.position = center;
-                        self.camera.stop_tracking();
-                    }
-                    _ => {}
+            Input::Button(ButtonArgs {
+                state: Press,
+                button: Keyboard(key),
+                ..
+            }) => match key {
+                W => self.camera.translate(MoveDirection::Up),
+                S => self.camera.translate(MoveDirection::Down),
+                A => self.camera.translate(MoveDirection::Left),
+                D => self.camera.translate(MoveDirection::Right),
+                Space => self.updater.controll.toggle_pause(),
+                Return => {
+                    self.camera.width = start_cam_width;
+                    self.camera.height = start_cam_height;
+                    self.camera.position = center;
+                    self.camera.stop_tracking();
                 }
-            }
+                _ => {}
+            },
             Input::Move(MouseCursor(x, y)) => self.last_mouse_position = Position::new(x, y),
-            Input::Move(MouseScroll(_, direction)) => {
-                self.camera.zoom(self.last_screen_size,
-                                 if direction == 1.0 {
-                                     ZoomDirection::In
-                                 } else {
-                                     ZoomDirection::Out
-                                 },
-                                 self.last_mouse_position)
-            }
-            Input::Button(ButtonArgs{state: Press, button:Button::Mouse(MouseButton::Left), ..}) => {
-                self.drag_mouse_start = Some(self.last_mouse_position)
-            }
-            Input::Button(ButtonArgs{state: Release, button:Button::Mouse(MouseButton::Left), ..}) => {
+            Input::Move(MouseScroll(_, direction)) => self.camera.zoom(
+                self.last_screen_size,
+                if direction == 1.0 {
+                    ZoomDirection::In
+                } else {
+                    ZoomDirection::Out
+                },
+                self.last_mouse_position,
+            ),
+            Input::Button(ButtonArgs {
+                state: Press,
+                button: Button::Mouse(MouseButton::Left),
+                ..
+            }) => self.drag_mouse_start = Some(self.last_mouse_position),
+            Input::Button(ButtonArgs {
+                state: Release,
+                button: Button::Mouse(MouseButton::Left),
+                ..
+            }) => {
                 if let Some(rect) = self.ceate_dragtengle_maybe() {
                     let projection = self.camera.create_projection(self.last_screen_size);
                     let projected_rect = Rectangle {
@@ -236,7 +261,8 @@ impl State for ConquestState {
                     };
                     let model_lock = self.updater.model_writer.read_lock_model();
                     let time = model_lock.time;
-                    let selected: Vec<ShipID> = model_lock.ships
+                    let selected: Vec<ShipID> = model_lock
+                        .ships
                         .iter()
                         .filter_map(|x| {
                             if x.owner != self.player_id {
@@ -250,7 +276,8 @@ impl State for ConquestState {
                             }
                         })
                         .collect();
-                    self.updater.enqueue(Change::Select(self.player_id, selected));
+                    self.updater
+                        .enqueue(Change::Select(self.player_id, selected));
                 };
                 self.drag_mouse_start = None
             }
@@ -267,57 +294,67 @@ impl State for ConquestState {
 }
 
 impl ConquestState {
-    pub fn new_game(generator: conrod::widget::id::Generator) -> ConquestState {
+    pub fn new_game(generator: Generator) -> ConquestState {
         let earth = StellarBody::new_earthlike("earth");
-        ConquestState::new(generator,
-            Camera::new(
-                center,
-                start_cam_width,
-                start_cam_height
-            ),
-            Arc::new(RwLock::new(GameModel::new(vec![
-            System::new(
+        ConquestState::new(
+            generator,
+            Camera::new(center, start_cam_width, start_cam_height),
+            Arc::new(RwLock::new(GameModel::new(vec![System::new(
                 center,
                 vec![
                     StellarBody::create_single_star("sun"),
                     StellarBody::new(
-                        BodyClass::Rocky(
-                            Colony::new_empty(0.147)
-                        ),
+                        BodyClass::Rocky(Colony::new_empty(0.147)),
                         "mercury",
                         Duration::days(88),
-                        0.387098
+                        0.387098,
                     ),
                     StellarBody::new(
-                        BodyClass::Rocky(
-                            Colony::new_empty(0.902)
-                        ),
+                        BodyClass::Rocky(Colony::new_empty(0.902)),
                         "venus",
                         Duration::days(225),
-                        0.723332
+                        0.723332,
                     ),
                     earth,
                     StellarBody::new(
-                        BodyClass::Rocky(
-                            Colony::new_empty(0.284)
-                        ),
+                        BodyClass::Rocky(Colony::new_empty(0.284)),
                         "mars",
                         Duration::days(780),
                         1.523679,
                     ),
-                    StellarBody::new(BodyClass::GasGiant, "jupiter", Duration::days(4333), 5.20260),
-                    StellarBody::new(BodyClass::GasGiant, "saturn", Duration::days(10759), 9.554909),
-                    StellarBody::new(BodyClass::GasGiant, "uranus", Duration::days(30688), 19.2184),
-                    StellarBody::new(BodyClass::GasGiant, "neptune", Duration::days(60182), 30.110387),
-                ]
-            )
-        ]
-        ))))
+                    StellarBody::new(
+                        BodyClass::GasGiant,
+                        "jupiter",
+                        Duration::days(4333),
+                        5.20260,
+                    ),
+                    StellarBody::new(
+                        BodyClass::GasGiant,
+                        "saturn",
+                        Duration::days(10759),
+                        9.554909,
+                    ),
+                    StellarBody::new(
+                        BodyClass::GasGiant,
+                        "uranus",
+                        Duration::days(30688),
+                        19.2184,
+                    ),
+                    StellarBody::new(
+                        BodyClass::GasGiant,
+                        "neptune",
+                        Duration::days(60182),
+                        30.110387,
+                    ),
+                ],
+            )]))),
+        )
     }
-    pub fn new(generator: conrod::widget::id::Generator,
-               start_cam: Camera,
-               start_model: Arc<RwLock<GameModel>>)
-               -> ConquestState {
+    pub fn new(
+        generator: Generator,
+        start_cam: Camera,
+        start_model: Arc<RwLock<GameModel>>,
+    ) -> ConquestState {
         ConquestState {
             ids: Ids::new(generator),
             player_id: 0,

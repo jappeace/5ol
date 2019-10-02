@@ -18,8 +18,8 @@
 // (au,au), should be rendered in (px,px)
 
 use conrod::Dimensions;
-use geometry::*;
-use model::galaxy::{Au, BodyAddress};
+use crate::model::galaxy::{Au, BodyAddress};
+use crate::geometry::{Position, Rectangle, Disk};
 
 pub enum ZoomDirection {
     In,
@@ -143,8 +143,9 @@ impl Projection {
 
 #[cfg(test)]
 mod tests {
-    use camera::*;
-    use geometry::*;
+    use crate::camera::*;
+    use chrono::Duration;
+
     #[test]
     fn projection_idompotency() {
         let mut cam = Camera::new(Position { x: 3.0, y: 59.3 }, 4.0, 2.1);
@@ -162,10 +163,6 @@ mod tests {
     }
     #[test]
     fn ships_should_be_visible_in_start_location() {
-        use chrono::Duration;
-        use model::galaxy::*;
-        use model::root::*;
-        use model::ship::*;
         // there is an annoying filter bug where ships are only sometimes
         // visible on the lower zoom levels
         // its really hard to test ingame so this unit test does it

@@ -32,12 +32,12 @@ use std::thread;
 use std::sync::{Arc, RwLock, RwLockWriteGuard, RwLockReadGuard};
 use chrono::Duration;
 
-use model::root::{GameModel, PlayerID};
-use model::galaxy::{BodyAddress,BodyClass};
-use model::ship::ShipID;
-use model::colony::*;
+use crate::model::{GameModel, PlayerID};
+use crate::model::galaxy::{BodyAddress,BodyClass};
+use crate::model::ship::ShipID;
+use crate::model::colony::*;
 
-use async::thread_status::{ThreadControll, Status};
+use crate::logic::thread_status::{ThreadControll, Status};
 use std::sync::mpsc::{channel, Sender};
 
 
@@ -45,6 +45,7 @@ use std::sync::mpsc::{channel, Sender};
 pub struct ModelAccess{
     pub game_model:Arc<RwLock<GameModel>>
 }
+
 impl ModelAccess{
     pub fn new(start_model:Arc<RwLock<GameModel>>) -> ModelAccess{
         let mut controll = ThreadControll::new();

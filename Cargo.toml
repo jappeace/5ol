@@ -1,12 +1,15 @@
+cargo-features = ["edition"]
+
 [package]
+edition = "2018"
 name = "sol"
 version = "0.1.0"
 authors = ["jappie <superpwnzormegaman@gmail.com>"]
 license-file = "license.txt"
 
 [dependencies]
-conrod = {version = "0.60.0", features = ["piston"] }
-pistoncore-input = "0.21.0"
+conrod = {version = "0.61.1", features = ["piston"] }
+pistoncore-input = "*" 
 find_folder = "*"
 piston_window = "*"
 chrono = "*"

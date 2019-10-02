@@ -62,7 +62,7 @@ impl ThreadControll{
             status:Arc::new(RwLock::new(ThreadStatus::new()))
         }
     }
-    pub fn execute_async<F, T>(&self, threadlogic:F) -> ()
+    pub fn execute_logic<F, T>(&self, threadlogic:F) -> ()
         where F: Fn() -> T, F: Send + 'static, T: Send + 'static
     {
         self.status.write().expect("running").status = Status::Executing;

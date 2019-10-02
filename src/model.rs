@@ -16,10 +16,13 @@
 
 
 // This is the root model or model abstract, the root of the state of the program
+pub mod galaxy;
+pub mod colony;
+pub mod ship;
 
 use chrono::Duration;
-use model::galaxy::{System, BodyAddress, Galaxy};
-use model::ship::{Ship, ShipID};
+use galaxy::{System, BodyAddress, Galaxy};
+use ship::{Ship, ShipID};
 use std::usize;
 
 // top level datastructure, all other models should be attached to this.

@@ -17,10 +17,10 @@
 
 // this file models ships in the galaxy, the main form of units
 
-use geometry::Position;
-use model::galaxy::*;
-use model::colony::Constructable;
-use model::root::{GameModel, PlayerID};
+use crate::geometry::Position;
+use super::galaxy::*;
+use super::colony::Constructable;
+use super::{GameModel, PlayerID};
 use chrono::Duration;
 pub type ShipID = usize;
 #[derive(Clone)]

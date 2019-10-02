@@ -20,9 +20,9 @@
 use std::sync::{Arc, RwLock};
 use chrono::Duration;
 
-use model::root::GameModel;
-use async::model_access::{ModelAccess, Change};
-use async::thread_status::{ThreadControll, Status};
+use crate::model::GameModel;
+use super::model_access::{ModelAccess, Change};
+use super::thread_status::{ThreadControll, Status};
 use std::sync::mpsc::Sender;
 
 pub struct Updater{
@@ -31,6 +31,7 @@ pub struct Updater{
     pub change_queue:Option<Sender<Change>>,
     pub model_writer:ModelAccess
 }
+
 impl Updater{
     pub fn new(start_model:Arc<RwLock<GameModel>>, granuality:fn(i64)->Duration) -> Updater{
         let mut controll = ThreadControll::new();
@@ -49,7 +50,7 @@ impl Updater{
         let model = self.model_writer.game_model.clone();
         let granuality = self.granuality.clone();
 
-        self.controll.execute_async(move ||{
+        self.controll.execute_logic(move ||{
             Updater::update_nature(model.clone(), sender.clone(), granuality.clone());
         })
     }
