@@ -53,7 +53,7 @@ fn main() {
     const HEIGHT: u32 = 600;
 
     // Change this to OpenGL::V2_1 if not working.
-    let opengl = OpenGL::V3_3;
+    let opengl = OpenGL::V3_2;
 
     // Construct the window.
     let mut window: PistonWindow = PistonWindow::new(
